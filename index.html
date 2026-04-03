@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>STH HR Challenge | Отработка возражений</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background: #0E1C2F;
+            background-image: radial-gradient(circle at 10% 20%, rgba(242, 107, 46, 0.08) 0%, rgba(0,0,0,0) 60%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+        }
+        .app-container {
+            max-width: 1280px;
+            width: 100%;
+            background: #FFFFFF;
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .header {
+            background: #0B1A2C;
+            padding: 16px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            border-bottom: 3px solid #F26B2E;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            background: #F26B2E;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 24px;
+            color: #0B1A2C;
+            box-shadow: 0 4px 12px rgba(242,107,46,0.3);
+        }
+        .logo-text h2 {
+            color: white;
+            font-size: 1.6rem;
+            letter-spacing: -0.3px;
+            font-weight: 700;
+        }
+        .logo-text p {
+            color: #9AAEBF;
+            font-size: 0.75rem;
+        }
+        .user-info {
+            background: #1E2F42;
+            padding: 6px 20px;
+            border-radius: 60px;
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            color: white;
+            font-weight: 500;
+        }
+        .logout-btn {
+            background: none;
+            border: 1px solid rgba(242,107,46,0.6);
+            color: #F26B2E;
+            padding: 5px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: 0.2s;
+        }
+        .logout-btn:hover {
+            background: #F26B2E;
+            color: #0B1A2C;
+            border-color: #F26B2E;
+        }
+        .main-content {
+            padding: 32px;
+        }
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px 16px;
+        }
+        .login-card {
+            background: #F9FBFD;
+            border-radius: 32px;
+            padding: 32px;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+            text-align: center;
+            border: 1px solid #E2EDF2;
+        }
+        .login-card input {
+            width: 100%;
+            padding: 16px 20px;
+            font-size: 1rem;
+            border: 2px solid #CFDFE8;
+            border-radius: 60px;
+            margin: 20px 0;
+            transition: 0.2s;
+        }
+        .login-card input:focus {
+            border-color: #F26B2E;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(242,107,46,0.2);
+        }
+        .btn-primary {
+            background: #F26B2E;
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 60px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            width: 100%;
+        }
+        .btn-primary:hover {
+            background: #D85A1F;
+            transform: translateY(-2px);
+        }
+        .game-area, .result-area {
+            animation: fade 0.3s ease;
+        }
+        .question-header {
+            background: #F1F6FA;
+            padding: 12px 24px;
+            border-radius: 60px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            font-weight: 600;
+            color: #0B1A2C;
+        }
+        .question-text {
+            background: #FFFFFF;
+            padding: 28px;
+            border-radius: 28px;
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-bottom: 28px;
+            border-left: 6px solid #F26B2E;
+            box-shadow: 0 6px 14px rgba(0,0,0,0.03);
+            color: #102231;
+        }
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin-bottom: 30px;
+        }
+        .option-btn {
+            background: white;
+            border: 2px solid #E2EDF2;
+            border-radius: 60px;
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 0.98rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .option-btn:hover:not(:disabled) {
+            background: #FFF3EC;
+            border-color: #F26B2E;
+            transform: translateX(5px);
+        }
+        .option-prefix {
+            background: #EFF3F8;
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 30px;
+            font-weight: bold;
+            color: #F26B2E;
+        }
+        .feedback-area {
+            background: #FFF7F0;
+            border-radius: 24px;
+            padding: 22px;
+            margin: 20px 0;
+            border-left: 6px solid #F26B2E;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .next-btn {
+            background: #F26B2E;
+            width: 100%;
+            padding: 14px;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .next-btn:disabled {
+            background: #BCCCD8;
+            cursor: not-allowed;
+        }
+        .score-summary {
+            background: linear-gradient(135deg, #0B1A2C, #1F3A4C);
+            color: white;
+            border-radius: 28px;
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 32px;
+        }
+        .big-score {
+            font-size: 3.5rem;
+            font-weight: 800;
+            color: #F26B2E;
+        }
+        .rating-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #FFFFFF;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .rating-table th, .rating-table td {
+            padding: 14px 12px;
+            text-align: left;
+            border-bottom: 1px solid #E6F0F5;
+        }
+        .rating-table th {
+            background: #F1F6FA;
+            color: #0B1A2C;
+            font-weight: 700;
+        }
+        .restart-btn {
+            background: #0B1A2C;
+            margin-top: 16px;
+            width: auto;
+            display: inline-block;
+            padding: 12px 28px;
+        }
+        .flex-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 24px;
+        }
+        @keyframes fade {
+            from { opacity: 0; transform: translateY(10px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        footer {
+            font-size: 0.7rem;
+            text-align: center;
+            padding: 20px;
+            background: #F9FBFD;
+            color: #5B738C;
+            border-top: 1px solid #E2EDF2;
+        }
+        @media (max-width: 700px) {
+            .main-content { padding: 20px; }
+            .question-text { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+<div class="app-container" id="appRoot">
+    <div class="header">
+        <div class="logo-area">
+            <div class="logo-icon">STH</div>
+            <div class="logo-text">
+                <h2>STH HR Challenge</h2>
+                <p>Отработка возражений • корпоративная викторина</p>
+            </div>
+        </div>
+        <div class="user-info" id="userInfoBar" style="display: none;">
+            <span id="userNameDisplay"></span>
+            <button class="logout-btn" id="logoutBtn">Выйти</button>
+        </div>
+    </div>
+    <div class="main-content" id="mainContent"></div>
+    <footer>🏆 Рейтинг по сумме баллов, количеству игр и среднему результату. Каждый ответ: 0 / 0.5 / 1 балл</footer>
+</div>
+
+<script>
+    // ============================================================
+    // 1. ЖЁСТКО ЗАШИТАЯ ССЫЛКА НА GOOGLE TABLES (CSV)
+    //    Администратор заменяет URL на свою опубликованную таблицу.
+    //    Таблица должна иметь колонки (минимум):
+    //    theme, question, correct, half, wrong_obvious, wrong_tricky
+    // ============================================================
+    const CUSTOM_CSV_URL = "";   // <--- ВСТАВЬТЕ ССЫЛКУ СЮДА (например, "https://docs.google.com/spreadsheets/d/.../export?format=csv")
+    // Если ссылка пустая или загрузка не удалась, используются встроенные вопросы (200+ на тему).
+    
+    // ------------------------------------------------------------------
+    // Глобальные переменные
+    let masterQuestions = [];       // массив тем, каждая тема — массив вопросов
+    let currentThemeNames = [];     // названия тем
+    let currentUser = null;
+    let currentGame = null;
+    let leaderboard = [];           // { name, totalPointsSum, gamesCount, bestScore }
+    
+    // ------------------------------------------------------------------
+    // Загрузка и парсинг CSV (из зашитой ссылки)
+    async function loadQuestionsFromCSV(url) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const csvText = await response.text();
+            const rows = csvText.split(/\r?\n/).filter(row => row.trim().length > 0);
+            if (rows.length < 2) throw new Error("Недостаточно строк в CSV");
+            const headers = rows[0].split(',').map(h => h.trim().toLowerCase());
+            const themeIdx = headers.indexOf("theme");
+            const questionIdx = headers.indexOf("question");
+            const correctIdx = headers.indexOf("correct");
+            const halfIdx = headers.indexOf("half");
+            const wrongObvIdx = headers.indexOf("wrong_obvious");
+            const wrongTrickIdx = headers.indexOf("wrong_tricky");
+            if (themeIdx === -1 || questionIdx === -1 || correctIdx === -1 || halfIdx === -1 || wrongObvIdx === -1 || wrongTrickIdx === -1) {
+                throw new Error("CSV должен содержать колонки: theme, question, correct, half, wrong_obvious, wrong_tricky");
+            }
+            const questionsByTheme = new Map();
+            for (let i = 1; i < rows.length; i++) {
+                let line = rows[i];
+                const values = [];
+                let inQuote = false;
+                let current = "";
+                for (let ch of line) {
+                    if (ch === '"') inQuote = !inQuote;
+                    else if (ch === ',' && !inQuote) {
+                        values.push(current.trim());
+                        current = "";
+                    } else current += ch;
+                }
+                values.push(current.trim());
+                const theme = values[themeIdx]?.replace(/^"|"$/g, '') || "Общая тема";
+                const questionText = values[questionIdx]?.replace(/^"|"$/g, '') || "";
+                const correct = values[correctIdx]?.replace(/^"|"$/g, '') || "";
+                const half = values[halfIdx]?.replace(/^"|"$/g, '') || "";
+                const wrongObv = values[wrongObvIdx]?.replace(/^"|"$/g, '') || "";
+                const wrongTrick = values[wrongTrickIdx]?.replace(/^"|"$/g, '') || "";
+                if (!questionText || !correct) continue;
+                // формируем варианты и обратную связь (если нет кастомных фидбеков, генерируем стандартные)
+                const options = [
+                    { text: wrongObv, type: 0, feedback: `❌ Ошибка: "${wrongObv}" — такое обесценивание ведёт к отказу кандидата.` },
+                    { text: wrongTrick, type: 1, feedback: `⚠️ Ловушка: "${wrongTrick}" — звучит правдоподобно, но содержит скрытые риски.` },
+                    { text: half, type: 2, feedback: `🟡 Частично верно: "${half}" — хорошо, но не хватает конкретики/цифр/гарантий.` },
+                    { text: correct, type: 3, feedback: `✅ Отлично! "${correct}" — профессиональная отработка, закрывает возражение полностью.` }
+                ];
+                // перемешиваем порядок вариантов
+                for (let k = options.length - 1; k > 0; k--) {
+                    const r = Math.floor(Math.random() * (k + 1));
+                    [options[k], options[r]] = [options[r], options[k]];
+                }
+                const questionObj = { text: questionText, options };
+                if (!questionsByTheme.has(theme)) questionsByTheme.set(theme, []);
+                questionsByTheme.get(theme).push(questionObj);
+            }
+            if (questionsByTheme.size === 0) throw new Error("Нет валидных вопросов в CSV");
+            const themeList = Array.from(questionsByTheme.keys());
+            const newMaster = themeList.map(theme => questionsByTheme.get(theme));
+            return { master: newMaster, themeNames: themeList };
+        } catch (err) {
+            console.error("Ошибка загрузки CSV:", err);
+            return null;
+        }
+    }
+    
+    // ------------------------------------------------------------------
+    // Встроенный генератор вопросов (200+ на тему, 5 предопределённых тем)
+    function generateFallbackQuestions() {
+        const themes = [
+            "💰 Зарплата и мотивация",
+            "⏰ График и баланс",
+            "🏭 Условия труда",
+            "📈 Развитие и карьера",
+            "🚚 Транспорт / логистика"
+        ];
+        const roles = ["грузчик", "комплектовщик", "водитель погрузчика", "приёмщик", "отборщик", "кладовщик"];
+        const products = ["мебель", "электронику", "стройматериалы", "автозапчасти", "бытовую химию"];
+        const master = [];
+        for (let t = 0; t < themes.length; t++) {
+            const themeQuestions = [];
+            for (let i = 0; i < 200; i++) {
+                const seed = i * 131 + t * 77;
+                const role = roles[Math.floor(Math.abs(Math.sin(seed)) * roles.length)];
+                const product = products[Math.floor(Math.abs(Math.sin(seed+2)) * products.length)];
+                let qText = "", correct = "", half = "", wrongObv = "", wrongTrick = "";
+                if (t === 0) { // зарплата
+                    qText = `Кандидат-${role}: «В соседней компании предлагают на ${10 + (i % 30)}% выше стартовую ставку. Почему я должен выбрать вас?»`;
+                    correct = `У нас полностью белая зарплата, ежемесячная премия до 35% за KPI, ДМС с первого месяца, оплата проезда. Реальный доход выше на 15-20% за счёт стабильности и бонусов.`;
+                    half = `«У нас тоже есть премии, но не всегда. Возможно, со временем выйдете на тот же уровень»`;
+                    wrongObv = `«Идите туда, если вам там лучше, но у них текучка 50%»`;
+                    wrongTrick = `«Мы добавим неофициальную часть, но без соцпакета и больничных»`;
+                } else if (t === 1) { // график
+                    qText = `«Смены по 12 часов — это тяжело для семьи. Можете предложить что-то более гибкое?»`;
+                    correct = `У нас выбор: график 2/2 по 11 часов, либо 5/2 с восьмичасовым днём. Возможна подмена смен. 85% сотрудников довольны балансом.`;
+                    half = `«Можно договориться через полгода, если покажете себя»`;
+                    wrongObv = `«Склад — не курорт, не нравится — уходите»`;
+                    wrongTrick = `«Формально поставим 5/2, но по факту будут переработки без оплаты»`;
+                } else if (t === 2) { // условия
+                    qText = `«На складах зимой холодно. Как вы решаете этот вопрос?»`;
+                    correct = `Современное отопление, поддержание +16°C, тёплая спецодежда, комнаты обогрева. В этом году обновили систему за 2,5 млн руб.`;
+                    half = `«Одевайтесь теплее, у нас есть жилетки, но в целом терпимо»`;
+                    wrongObv = `«Все мёрзнут, ничего страшного»`;
+                    wrongTrick = `«Поставили обогреватели, но они греют только один угол»`;
+                } else if (t === 3) { // карьера
+                    qText = `«Я хочу стать старшим смены. Есть реальные перспективы?»`;
+                    correct = `Трек: ${role} → старший смены → супервайзер. Бесплатные курсы, оплата внешнего обучения. За год 12 внутренних повышений.`;
+                    half = `«Поработайте год, потом посмотрим»`;
+                    wrongObv = `«Вы грузчик, забудьте про карьеру»`;
+                    wrongTrick = `«Дадим должность, но без прибавки и с двойной нагрузкой»`;
+                } else { // транспорт
+                    qText = `«До вас от метро час на автобусе. Есть варианты?»`;
+                    correct = `Корпоративный шаттл от метро каждые 20 минут, компенсация проезда 1500 руб/мес. Для вечерних смен — такси до дома за наш счёт.`;
+                    half = `«Можно на такси, но за свой счёт»`;
+                    wrongObv = `«Переезжайте ближе, это не наши проблемы»`;
+                    wrongTrick = `«Подвозите коллег, они скинутся, но неофициально»`;
+                }
+                const options = [
+                    { text: wrongObv, type: 0, feedback: `❌ Ошибка: "${wrongObv}" — обесценивание кандидата, ведёт к отказу.` },
+                    { text: wrongTrick, type: 1, feedback: `⚠️ Ловушка: "${wrongTrick}" — звучит правдоподобно, но несёт риски.` },
+                    { text: half, type: 2, feedback: `🟡 Частично: "${half}" — неплохо, но не хватает конкретики.` },
+                    { text: correct, type: 3, feedback: `✅ Отлично! "${correct}" — закрывает возражение полностью.` }
+                ];
+                for (let k = options.length - 1; k > 0; k--) {
+                    const r = Math.floor(Math.random() * (k + 1));
+                    [options[k], options[r]] = [options[r], options[k]];
+                }
+                themeQuestions.push({ text: qText, options });
+            }
+            master.push(themeQuestions);
+        }
+        return { master, themeNames: themes };
+    }
+    
+    // Инициализация вопросов (пытаемся загрузить из зашитой ссылки, иначе fallback)
+    async function initQuestions() {
+        if (CUSTOM_CSV_URL && CUSTOM_CSV_URL.trim() !== "") {
+            const result = await loadQuestionsFromCSV(CUSTOM_CSV_URL);
+            if (result && result.master.length > 0) {
+                masterQuestions = result.master;
+                currentThemeNames = result.themeNames;
+                return true;
+            } else {
+                console.warn("Не удалось загрузить кастомные вопросы, используем fallback");
+            }
+        }
+        const fallback = generateFallbackQuestions();
+        masterQuestions = fallback.master;
+        currentThemeNames = fallback.themeNames;
+        return false;
+    }
+    
+    // ------------------------------------------------------------------
+    // Рейтинг (localStorage)
+    function loadLeaderboard() {
+        const stored = localStorage.getItem("sth_hr_leaderboard_final");
+        if (stored) {
+            try { leaderboard = JSON.parse(stored); } catch(e) {}
+        }
+        if (!leaderboard) leaderboard = [];
+    }
+    function saveLeaderboard() {
+        localStorage.setItem("sth_hr_leaderboard_final", JSON.stringify(leaderboard));
+    }
+    function updateStats(userName, gameScore) {
+        let entry = leaderboard.find(l => l.name === userName);
+        if (!entry) {
+            entry = { name: userName, totalPointsSum: 0, gamesCount: 0, bestScore: 0 };
+            leaderboard.push(entry);
+        }
+        entry.totalPointsSum += gameScore;
+        entry.gamesCount += 1;
+        if (gameScore > entry.bestScore) entry.bestScore = gameScore;
+        leaderboard.sort((a,b) => b.totalPointsSum - a.totalPointsSum);
+        saveLeaderboard();
+    }
+    
+    // ------------------------------------------------------------------
+    // Логика игры: выбираем по 1 вопросу из каждой темы (5 вопросов)
+    function pickRandomQuestions() {
+        const selected = [];
+        for (let t = 0; t < masterQuestions.length; t++) {
+            const themeQuestions = masterQuestions[t];
+            if (!themeQuestions.length) continue;
+            const randIdx = Math.floor(Math.random() * themeQuestions.length);
+            selected.push({
+                themeIdx: t,
+                questionObj: themeQuestions[randIdx],
+                answered: false,
+                points: null
+            });
+        }
+        return selected;
+    }
+    
+    function startNewGame(user) {
+        const questionsPack = pickRandomQuestions();
+        if (questionsPack.length === 0) {
+            alert("Нет загруженных вопросов. Проверьте источник данных.");
+            return;
+        }
+        currentGame = {
+            questions: questionsPack,
+            currentIndex: 0,
+            totalScore: 0,
+            completed: false
+        };
+        renderGame();
+    }
+    
+    // ------------------------------------------------------------------
+    // Отрисовка экранов
+    function renderLogin() {
+        const container = document.getElementById("mainContent");
+        container.innerHTML = `
+            <div class="login-screen">
+                <div class="login-card">
+                    <h2 style="color:#0B1A2C;">🔥 STH Битва рекрутеров</h2>
+                    <p style="margin-top:8px">Введите ФИО для участия в рейтинге и соревнования</p>
+                    <input type="text" id="fullnameInput" placeholder="Иванов Сергей Андреевич" autocomplete="off">
+                    <button class="btn-primary" id="startGameBtn" style="margin-top:16px;">🚀 Начать викторину (5 тем)</button>
+                </div>
+                <div style="margin-top:32px; width:100%">
+                    <h3 style="color:#0B1A2C;">🏅 Рейтинг STH (сумма баллов)</h3>
+                    <table class="rating-table">
+                        <thead><tr><th>Рекрутер</th><th>⭐ Сумма баллов</th><th>🎮 Игр</th><th>📊 Средний балл</th><th>🏆 Лучшая игра</th></tr></thead>
+                        <tbody id="ratingTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+        document.getElementById("startGameBtn")?.addEventListener("click", async () => {
+            const name = document.getElementById("fullnameInput").value.trim();
+            if (name.length < 3) { alert("Введите полное ФИО (минимум 3 символа)"); return; }
+            currentUser = { name };
+            document.getElementById("userNameDisplay").innerText = name;
+            document.getElementById("userInfoBar").style.display = "flex";
+            await initQuestions(); // перезагружаем вопросы (из зашитой ссылки или fallback)
+            if (masterQuestions.length === 0) {
+                alert("Не удалось загрузить вопросы. Обратитесь к администратору.");
+                return;
+            }
+            startNewGame(currentUser);
+        });
+        renderRatingTable();
+    }
+    
+    function renderRatingTable() {
+        const tbody = document.getElementById("ratingTableBody");
+        if (!tbody) return;
+        tbody.innerHTML = leaderboard.slice(0, 20).map(entry => {
+            const avg = entry.gamesCount > 0 ? (entry.totalPointsSum / entry.gamesCount).toFixed(2) : "0";
+            return `<tr>
+                        <td>${escapeHtml(entry.name)}</td>
+                        <td><strong>${entry.totalPointsSum.toFixed(1)}</strong></td>
+                        <td>${entry.gamesCount}</td>
+                        <td>${avg}</td>
+                        <td>${entry.bestScore.toFixed(1)} / 5</td>
+                    </table>`;
+        }).join('');
+    }
+    
+    function renderGame() {
+        if (!currentGame || currentGame.completed) return;
+        const qData = currentGame.questions[currentGame.currentIndex];
+        const question = qData.questionObj;
+        const curNum = currentGame.currentIndex + 1;
+        const total = currentGame.questions.length;
+        const themeName = currentThemeNames[qData.themeIdx] || `Тема ${qData.themeIdx+1}`;
+        const container = document.getElementById("mainContent");
+        container.innerHTML = `
+            <div class="game-area">
+                <div class="question-header"><span>📌 ${escapeHtml(themeName)}</span><span>Вопрос ${curNum} из ${total}</span></div>
+                <div class="question-text">${escapeHtml(question.text)}</div>
+                <div class="options-list" id="optionsList"></div>
+                <div id="feedbackBlock" class="feedback-area" style="display:none;"></div>
+                <button id="nextQuestionBtn" class="btn-primary next-btn" disabled>➡ Далее</button>
+            </div>
+        `;
+        const optionsDiv = document.getElementById("optionsList");
+        question.options.forEach((opt, idx) => {
+            const btn = document.createElement("button");
+            btn.className = "option-btn";
+            btn.innerHTML = `<span class="option-prefix">${String.fromCharCode(65+idx)}</span><span>${escapeHtml(opt.text)}</span>`;
+            btn.dataset.type = opt.type;
+            btn.dataset.feedback = opt.feedback;
+            btn.addEventListener("click", () => onAnswer(btn, qData, opt.type, opt.feedback));
+            optionsDiv.appendChild(btn);
+        });
+        const nextBtn = document.getElementById("nextQuestionBtn");
+        nextBtn.addEventListener("click", () => {
+            if (!qData.answered) return;
+            if (currentGame.currentIndex + 1 < total) {
+                currentGame.currentIndex++;
+                renderGame();
+            } else {
+                finishGame();
+            }
+        });
+    }
+    
+    function onAnswer(btn, qData, answerType, feedbackText) {
+        if (qData.answered) return;
+        let earnedPoints = answerType === 3 ? 1 : (answerType === 2 ? 0.5 : 0);
+        qData.answered = true;
+        qData.points = earnedPoints;
+        const feedbackDiv = document.getElementById("feedbackBlock");
+        feedbackDiv.style.display = "block";
+        feedbackDiv.innerHTML = `<strong>📢 Обратная связь эксперта STH:</strong><br>${escapeHtml(feedbackText)}<br><br><span style="font-weight:bold;">➕ Балл: ${earnedPoints}</span>`;
+        document.querySelectorAll(".option-btn").forEach(b => b.disabled = true);
+        btn.style.border = "3px solid #F26B2E";
+        btn.style.backgroundColor = "#FFF2E9";
+        const nextBtn = document.getElementById("nextQuestionBtn");
+        if (nextBtn) nextBtn.disabled = false;
+    }
+    
+    function finishGame() {
+        let total = 0;
+        for (let q of currentGame.questions) total += (q.points || 0);
+        currentGame.totalScore = total;
+        updateStats(currentUser.name, total);
+        renderResults(total);
+    }
+    
+    function renderResults(score) {
+        const container = document.getElementById("mainContent");
+        container.innerHTML = `
+            <div class="result-area">
+                <div class="score-summary">
+                    <h2>📊 Результат раунда</h2>
+                    <div class="big-score">${score.toFixed(1)} / 5.0</div>
+                    <p>Вы отработали ${currentGame.questions.length} сложных возражений</p>
+                </div>
+                <div style="margin-bottom:20px;"><h3>🏆 Обновлённый рейтинг STH</h3>
+                <table class="rating-table" id="finalRatingTable"><thead><tr><th>Рекрутер</th><th>Сумма баллов</th><th>Игр</th><th>Средний балл</th><th>Лучшая игра</th></thead><tbody id="finalRatingBody"></tbody></table></div>
+                <div class="flex-buttons"><button class="btn-primary restart-btn" id="playAgainBtn">🔄 Сыграть ещё раз</button><button class="btn-primary restart-btn" id="logoutAfterBtn" style="background:#1E2F42;">🚪 Выйти</button></div>
+            </div>
+        `;
+        const finalBody = document.getElementById("finalRatingBody");
+        if (finalBody) {
+            finalBody.innerHTML = leaderboard.slice(0, 20).map(entry => {
+                const avg = entry.gamesCount > 0 ? (entry.totalPointsSum / entry.gamesCount).toFixed(2) : "0";
+                return `<tr><td>${escapeHtml(entry.name)}</td><td><strong>${entry.totalPointsSum.toFixed(1)}</strong></td><td>${entry.gamesCount}</td><td>${avg}</td><td>${entry.bestScore.toFixed(1)} / 5</td></tr>`;
+            }).join('');
+        }
+        document.getElementById("playAgainBtn")?.addEventListener("click", () => startNewGame(currentUser));
+        document.getElementById("logoutAfterBtn")?.addEventListener("click", () => {
+            currentUser = null;
+            currentGame = null;
+            document.getElementById("userInfoBar").style.display = "none";
+            renderLogin();
+        });
+        renderRatingTable();
+    }
+    
+    function escapeHtml(str) { return String(str).replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+    
+    // ------------------------------------------------------------------
+    // Старт приложения
+    (async function() {
+        loadLeaderboard();
+        await initQuestions();   // загружаем вопросы из зашитой ссылки или fallback
+        renderLogin();
+        document.getElementById("logoutBtn")?.addEventListener("click", () => {
+            currentUser = null;
+            currentGame = null;
+            document.getElementById("userInfoBar").style.display = "none";
+            renderLogin();
+        });
+    })();
+</script>
+</body>
+</html>
