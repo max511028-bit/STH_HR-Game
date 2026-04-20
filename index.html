@@ -98,13 +98,18 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 .how-it-works{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:16px}
 .how-step{display:flex;gap:12px;align-items:flex-start;margin-bottom:12px}.how-step:last-child{margin-bottom:0}
 .step-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.loading-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--blue-light);border-radius:var(--radius);border:1px solid var(--blue);font-size:13px;color:var(--blue-dark);margin-bottom:16px}
+.spinner{width:16px;height:16px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.setup-banner{padding:16px;background:var(--amber-light);border:1px solid var(--amber);border-radius:var(--radius);font-size:13px;color:var(--amber);margin-bottom:16px;line-height:1.6}
 @media(max-width:600px){
-  .lb-row{grid-template-columns:32px 1fr 56px 64px}.lb-row>:nth-child(5){display:none}.lb-head>:nth-child(5){display:none}
+  .lb-row{grid-template-columns:32px 1fr 56px 64px}.lb-row>:nth-child(5){display:none}
   .nav{padding:12px 16px}.page,.page-wide{padding:20px 14px}
 }
 </style>
 </head>
 <body>
+
 <div class="nav">
   <span class="nav-logo">
     <svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="10" cy="10" r="7"/><path d="M7 10l2 2 4-4"/></svg>
@@ -202,7 +207,8 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 <div class="screen" id="sc-lb">
   <div class="page">
     <div class="flex between items-center mb-20"><h2>Рейтинг рекрутёров</h2><button class="btn btn-sm" onclick="gotoHome()">На главную</button></div>
-    <div class="card">
+    <div id="lb-loading" class="loading-bar"><div class="spinner"></div>Загружаем рейтинг...</div>
+    <div class="card" id="lb-card" style="display:none">
       <div class="lb-row lb-head" style="padding-bottom:8px">
         <div></div><div>Имя</div><div style="text-align:center">Попыток</div><div style="text-align:center">Ср. балл</div><div style="text-align:center">Итого</div>
       </div>
@@ -221,8 +227,9 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
         <button class="btn btn-danger btn-sm" onclick="doLogout()">Выйти</button>
       </div>
     </div>
+    <div id="admin-sync-status" style="display:none;margin-bottom:16px"></div>
     <div class="mb-16" style="font-size:13px;color:var(--blue-dark);padding:12px 16px;background:var(--blue-light);border-radius:var(--radius);border:1px solid var(--blue)">
-      <strong>Для работы теста нужно минимум 5 тем с вопросами.</strong> Каждая попытка = 5 случайных вопросов из 5 разных тем. Ответы перемешиваются автоматически.
+      <strong>Для работы теста нужно минимум 5 тем с вопросами.</strong> Каждая попытка = 5 случайных вопросов из 5 разных тем. Изменения сохраняются в Google Таблицу и видны всем.
     </div>
     <div class="tab-row" id="admin-tabs"></div>
     <div id="admin-body"></div>
@@ -292,329 +299,404 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 </div>
 
 <script>
-const ADMIN={u:'admin',p:'recruiter2024'};
-const DT=[
-{id:'t1',name:'Зарплата',desc:'Возражения про деньги и компенсацию',questions:[
-{id:'q101',q:'Кандидат: «Меня не устраивает предложенная зарплата — в другом месте платят больше»',answers:[
-{s:3,t:'Понимаю вас. Давайте посмотрим на полный пакет: у нас есть квартальные бонусы, ДМС и рост оклада по итогам испытательного. Итоговый доход часто выше, чем кажется. Когда удобно обсудить подробнее?',f:'Отлично! Вы признали возражение, показали ценность пакета и взяли инициативу.'},
-{s:2,t:'Сколько именно предлагают? Мы можем рассмотреть корректировку вилки.',f:'Хороший ход — уточнить цифры. Сразу добавьте про полный пакет, а не только оклад.'},
-{s:1,t:'У нас отличный коллектив и интересные задачи, деньги — не самое главное.',f:'Не обесценивайте материальный мотиватор. Сначала закройте финансовый вопрос.'},
-{s:0,t:'Ну, тогда идите туда — мы не будем вас уговаривать.',f:'Это разрывает контакт. Даже при отказе важно сохранить отношения.'}]},
-{id:'q102',q:'Кандидат: «У вас серая зарплата, мне нужна белая для ипотеки»',answers:[
-{s:3,t:'Вы правы, это важно. Официальная часть у нас достаточна для ипотеки. Могу прислать пример справки 2-НДФЛ. Когда планируете подачу заявки?',f:'Отлично: конкретика, снятие страха и предложение доказательства.'},
-{s:2,t:'Уточню в бухгалтерии точные цифры и перезвоню.',f:'Честно и ответственно. Обязательно перезвоните с данными, не затягивайте.'},
-{s:1,t:'Банки всё равно рассматривают такие случаи, не переживайте.',f:'Никогда не давайте непроверенных обещаний про банки — это подрывает доверие.'},
-{s:0,t:'Это стандартная практика рынка, все крупные компании так работают.',f:'Вы не закрыли конкретную боль — ипотеку. Отвечайте на это, а не на тренд рынка.'}]},
-{id:'q103',q:'Кандидат: «Испытательный срок с пониженной зарплатой — это слишком долго»',answers:[
-{s:3,t:'Понимаю. Снижение у нас всего 10%, а не вдвое, как бывает. При досрочном выполнении задач готовы завершить испытательный раньше. Вас устраивает такой подход?',f:'Отлично: конкретика, сравнение с рынком, опция досрочного завершения.'},
-{s:2,t:'Посмотрю, можно ли сократить срок до 1 месяца для вас.',f:'Хорошая инициатива, если это реально. Не обещайте то, что не в ваших силах.'},
-{s:1,t:'Такие условия у всех, это нормально.',f:'«У всех так» не убеждает. Кандидат слышит: его боль вам неважна.'},
-{s:0,t:'Ну, вы же понимаете — нам нужно вас проверить.',f:'Звучит как оправдание. Лучше: испытательный — шанс убедиться и для вас тоже.'}]}
-]},
-{id:'t2',name:'График работы',desc:'Смены, переработки, гибкий график',questions:[
-{id:'q201',q:'Кандидат: «Я не готов к ночным сменам — у меня семья»',answers:[
-{s:3,t:'Понимаю, семья — приоритет. Уточню: ночных смен 4–6 в месяц, планируются за 2 недели. Многие сотрудники с детьми выстраивают режим. Какие конкретно дни критичны для вас?',f:'Конкретизировали нагрузку, показали гибкость, выяснили реальные ограничения.'},
-{s:2,t:'Ночные смены оплачиваются с надбавкой 20%, это компенсирует неудобство.',f:'Финансовый аргумент уместен, но проигнорировал семейную ситуацию. Сначала услышьте кандидата.'},
-{s:1,t:'У всех сотрудников есть семьи — как-то справляются.',f:'Сравнение с другими обесценивает его ситуацию. Говорите о НЁМ.'},
-{s:0,t:'Без ночных не получится, к сожалению.',f:'Слишком поспешный отказ. Сначала уточните, насколько это принципиально.'}]},
-{id:'q202',q:'Кандидат: «Я слышал, у вас постоянные переработки»',answers:[
-{s:3,t:'Спасибо, что сказали прямо. Переработки бывают в пиковые периоды — 2–3 недели в квартал, оплачиваются по 1,5 ставки и согласуются заранее. В остальное время — строго 8 часов. Это вписывается в ваши ожидания?',f:'Честность + конкретика — лучшая стратегия. Не скрываете правду, но и не пугаете.'},
-{s:2,t:'Это зависит от сезона и проекта, но мы всегда компенсируем.',f:'Честно. Добавьте конкретику: сколько часов и в какие периоды.'},
-{s:1,t:'Переработки у нас редко, не переживайте.',f:'Если это неправда — потеряете кандидата после испытательного.'},
-{s:0,t:'Если не готовы к переработкам — наша компания не для вас.',f:'Слишком резко. Вы отталкиваете кандидата вместо поиска общего языка.'}]},
-{id:'q203',q:'Кандидат: «Мне нужен гибкий старт — с 10:00, а не с 9:00»',answers:[
-{s:3,t:'Хорошо, что уточняете заранее. Уточню у руководителя возможность начала в 10:00 для вашей позиции. Это критично или есть небольшой запас?',f:'Не дали ложных обещаний, предложили уточнить и не закрыли диалог.'},
-{s:2,t:'Я думаю, договоритесь с руководителем на месте.',f:'Размытый ответ. Лучше уточнить самому, а не перекладывать на кандидата.'},
-{s:1,t:'Это обычно обсуждается после оффера, пока не беспокойтесь.',f:'Не откладывайте принципиальные условия — кандидат должен принять взвешенное решение.'},
-{s:0,t:'У нас строго с 9:00, ничего не могу сделать.',f:'Возможно, вы теряете хорошего кандидата из-за 1 часа. Всегда уточняйте у руководителя.'}]}
-]},
-{id:'t3',name:'Не рассматривает работодателя',desc:'Кандидат не хочет работать именно у вас',questions:[
-{id:'q301',q:'Кандидат: «Я читал плохие отзывы о вашей компании на hh.ru»',answers:[
-{s:3,t:'Спасибо, что сказали. Я мониторю отзывы регулярно. Большинство негативных написаны 1–2 года назад и связаны с конкретным отделом. С тех пор сменился руководитель и система KPI. Хотите пообщаться с действующими сотрудниками напрямую?',f:'Не отрицаете факты, объясняете контекст, предлагаете прозрачное решение.'},
-{s:2,t:'Я знаю об этих отзывах. Компания работает над улучшениями.',f:'Честное признание. Усильте: что именно изменилось.'},
-{s:1,t:'Интернет-отзывы редко отражают реальность.',f:'Кандидат вам не поверит. Разберите конкретные отзывы, а не обесценивайте их.'},
-{s:0,t:'Отзывы пишут обиженные люди, не обращайте внимания.',f:'Отрицание проблемы — худшая тактика.'}]},
-{id:'q302',q:'Кандидат: «Мне не нравится, что ваша компания мало известна на рынке»',answers:[
-{s:3,t:'Понимаю. Бренд ещё строится — это честно. Зато вы войдёте в историю компании и будете влиять на её культуру. Что важнее: узнаваемость бренда или реальное влияние на продукт?',f:'Честны, переводите недостаток в возможность, задаёте уточняющий вопрос.'},
-{s:2,t:'Нас знают в нашей нише — это важнее массовой известности.',f:'Хороший ответ. Назовите нишу и конкретные примеры признания.'},
-{s:1,t:'Мы активно развиваем бренд, скоро нас все узнают.',f:'Неопределённое обещание. Кандидату нужна конкретика сейчас.'},
-{s:0,t:'Наш продукт говорит сам за себя.',f:'Защитная реакция не убеждает.'}]},
-{id:'q303',q:'Кандидат: «Я слышал, у вас высокая текучка кадров»',answers:[
-{s:3,t:'Честный вопрос. В прошлом году текучка была выше нормы. Причина — в системе мотивации, которую мы переработали. С тех пор за полгода уволился 1 человек. Вы можете пообщаться с командой напрямую.',f:'Честные цифры, объяснение причины и изменений. Это вызывает доверие.'},
-{s:2,t:'Я уточню точные цифры и перезвоню вам.',f:'Честно. Убедитесь, что реально перезвоните с данными.'},
-{s:1,t:'У нас нормальная текучка, как везде.',f:'Вы не ответили на вопрос. Кандидат хочет знать факты.'},
-{s:0,t:'Те, кто уходят — просто не подходят нашей культуре.',f:'Звучит высокомерно и закрывает диалог.'}]}
-]},
-{id:'t4',name:'Нашёл другую работу',desc:'Есть оффер или уже принял решение',questions:[
-{id:'q401',q:'Кандидат: «У меня есть оффер от другой компании, и он лучше по деньгам»',answers:[
-{s:3,t:'Поздравляю — значит, вы востребованный специалист. Давайте сравним: что именно лучше — только оклад или весь пакет? Кроме денег, что для вас важно при выборе?',f:'Не паникуете, запрашиваете детали, напоминаете о полном пакете, даёте кандидату выбор.'},
-{s:2,t:'Мы можем рассмотреть корректировку предложения.',f:'Хорошая позиция, если реально. Убедитесь, что у вас есть такие полномочия.'},
-{s:1,t:'Деньги — не самое главное. Подумайте о развитии.',f:'Обесцениваете реальную потребность. Сначала работайте с финансовым вопросом.'},
-{s:0,t:'Ну, тогда идите туда.',f:'Вы сдаётесь без борьбы.'}]},
-{id:'q402',q:'Кандидат: «Я уже принял оффер в другой компании»',answers:[
-{s:3,t:'Понимаю и уважаю ваше решение. Скажите — что привлекло в том предложении? Хочу понять, есть ли что предложить, если ситуация изменится. Держите нас в виду на будущее.',f:'Отпускаете без давления, собираете полезную информацию и сохраняете отношения.'},
-{s:2,t:'Жаль. Держите нас в виду — мы рады видеть вас в будущем.',f:'Хорошо сохраняете отношения. Можно добавить уточняющий вопрос.'},
-{s:1,t:'Может, стоит ещё раз подумать? Мы готовы улучшить предложение.',f:'Давление после принятого решения раздражает.'},
-{s:0,t:'Ну и ладно, удачи на новом месте.',f:'Упускаете возможность сохранить контакт для будущих вакансий.'}]}
-]},
-{id:'t5',name:'Не искал работу',desc:'Кандидат не в активном поиске',questions:[
-{id:'q501',q:'Кандидат: «Я сейчас не ищу работу, меня всё устраивает»',answers:[
-{s:3,t:'Отлично — это значит, что к вам стоит обращаться. Я не предлагаю срочно менять работу — просто хочу познакомить с возможностью. Если через 10 минут поймёте, что не по пути — скажу сам. Когда можно поговорить?',f:'Снимаете страх давления, предлагаете лёгкий формат и берёте инициативу.'},
-{s:2,t:'Понимаю. Тем не менее, позвольте рассказать — вдруг будет интересно.',f:'Мягко, но без конкретного крючка. Добавьте, почему именно ЕМУ это может быть интересно.'},
-{s:1,t:'Я понимаю, но у нас очень интересная вакансия.',f:'«Интересная вакансия» — так говорят все. Чем конкретно ваша вакансия выделяется?'},
-{s:0,t:'Ладно, если передумаете — звоните.',f:'Полная потеря инициативы.'}]},
-{id:'q502',q:'Кандидат: «Откуда вы взяли мой номер? Я ничего не публиковал»',answers:[
-{s:3,t:'Понимаю ваше удивление. Ваш контакт нашли через профессиональные сети — стандартная практика хедхантинга. Если хотите, объясню подробнее. Главное — вы ни к чему не обязываетесь, разговор займёт 5 минут.',f:'Честно объясняете источник, снимаете тревогу и предлагаете лёгкий следующий шаг.'},
-{s:2,t:'Извините за неожиданность. Ваш профиль нашли в открытых источниках.',f:'Честно. Добавьте предложение продолжить без обязательств.'},
-{s:1,t:'Не беспокойтесь, мы работаем официально.',f:'Не отвечает на реальный вопрос — откуда контакт.'},
-{s:0,t:'Это конфиденциальная информация, не могу сказать.',f:'Создаёт подозрение и закрывает диалог.'}]}
-]},
-{id:'t6',name:'Далеко добираться',desc:'Логистика и транспортная доступность',questions:[
-{id:'q601',q:'Кандидат: «Это слишком далеко от дома, я не готов тратить столько времени на дорогу»',answers:[
-{s:3,t:'Понимаю. Сколько времени сейчас занимает ваша дорога до работы? У нас от ближайшей станции — 15 минут. Плюс есть возможность 2 дня в неделю работать удалённо. Это меняет картину?',f:'Уточняете реальный контекст, даёте конкретику маршрута и предлагаете гибрид.'},
-{s:2,t:'Есть корпоративный транспорт и рассматривается гибридный формат.',f:'Хороший ответ с конкретными решениями. Уточните детали маршрута.'},
-{s:1,t:'Многие наши сотрудники едут издалека — привыкают.',f:'Сравнение с другими не решает проблему кандидата.'},
-{s:0,t:'К сожалению, офис у нас один и он там.',f:'Тупик. Всегда ищите альтернативы: гибрид, транспорт, гибкий старт.'}]},
-{id:'q602',q:'Кандидат: «У вас нет парковки, а я езжу на машине»',answers:[
-{s:3,t:'Понимаю. Своей парковки нет, но рядом есть платная — компания компенсирует 50% от её стоимости. Многие коллеги так и делают. Это подходит?',f:'Признаёте проблему, сразу предлагаете конкретное решение.'},
-{s:2,t:'Рядом есть платная парковка, можно рассмотреть компенсацию.',f:'Правильное направление. Уточните детали: процент компенсации.'},
-{s:1,t:'Многие приезжают на метро — это удобнее.',f:'Советовать изменить привычки — не лучший подход.'},
-{s:0,t:'Да, парковки нет, ничего не можем предложить.',f:'Полная капитуляция. Всегда ищите альтернативное решение.'}]}
-]},
-{id:'t7',name:'Вахта',desc:'Кандидат не рассматривает вахтовый метод',questions:[
-{id:'q701',q:'Кандидат: «Я не рассматриваю вахту, мне нужно быть дома»',answers:[
-{s:3,t:'Понимаю, это важное ограничение. Скажите — что именно является стоп-фактором: длительность, частота выездов или расположение объекта? У нас есть разные форматы — от 15/15 до месяца. Возможно, найдём подходящий ритм.',f:'Вы уточняете конкретный барьер, а не сразу закрываете диалог.'},
-{s:2,t:'У нас есть вахты с коротким циклом — 15/15. Вы рассматривали такой формат?',f:'Хороший конкретный вариант. Убедитесь, что он реально доступен для этой позиции.'},
-{s:1,t:'Вахта — это хороший заработок, многие потом не хотят уходить.',f:'Не отвечает на возражение. Кандидату важно быть дома.'},
-{s:0,t:'У нас только вахта, ничего не можем предложить.',f:'Слишком быстрая капитуляция. Уточните стоп-фактор перед тем, как закрывать диалог.'}]},
-{id:'q702',q:'Кандидат: «Жена не отпускает на вахту, это семейный вопрос»',answers:[
-{s:3,t:'Понимаю, семья — это главное. Расскажите подробнее: какой максимальный срок отсутствия был бы приемлем? Если договоритесь с семьёй на короткий цикл — готов обсудить варианты. Что именно беспокоит жену больше всего?',f:'Уважаете семейную ситуацию, уточняете реальные границы и ищете решение.'},
-{s:2,t:'Поговорите с женой про вахту 15/15 — это почти половину времени дома.',f:'Конкретный вариант. Лучше задать вопрос, а не давать совет.'},
-{s:1,t:'Многие семьи успешно живут в вахтовом режиме.',f:'Общее утверждение не помогает решить конкретную ситуацию.'},
-{s:0,t:'Это только ваш выбор, не нужно позволять семье решать за вас.',f:'Грубое нарушение границ. Никогда не вмешивайтесь в семейные отношения кандидата.'}]}
-]},
-{id:'t8',name:'Медицинская книжка',desc:'Нежелание оформлять санитарную книжку',questions:[
-{id:'q801',q:'Кандидат: «Я не хочу оформлять медицинскую книжку — это долго и дорого»',answers:[
-{s:3,t:'Понимаю. Мы компенсируем стоимость оформления и можем направить вас в наш медцентр — там это занимает 1 день. Всё, что нужно с вашей стороны — просто прийти. Это снимает вопрос?',f:'Конкретное решение двух барьеров сразу: стоимость и время. Отлично.'},
-{s:2,t:'Мы частично компенсируем расходы на оформление.',f:'Хорошо. Добавьте конкретную сумму и срок.'},
-{s:1,t:'Медкнижка — это обязательное требование по закону, без неё никак.',f:'Верно по факту, но не снимает возражение. Предложите решение.'},
-{s:0,t:'Ну, это обязательно для всех — ничего не поделаешь.',f:'Нет ни эмпатии, ни решения.'}]},
-{id:'q802',q:'Кандидат: «У меня есть хронические заболевания, боюсь, что не пройду медкомиссию»',answers:[
-{s:3,t:'Спасибо, что сказали. Список противопоказаний для нашей позиции довольно узкий. Давайте я уточню с медслужбой конкретно по вашей ситуации — это лучше, чем гадать. Какое заболевание вас беспокоит?',f:'Не пугаете и не обнадёживаете ложно — предлагаете конкретно разобраться.'},
-{s:2,t:'Уточню у нашего медицинского специалиста и свяжусь с вами.',f:'Ответственно. Убедитесь, что вернётесь с ответом быстро.'},
-{s:1,t:'Не переживайте, обычно всё проходят.',f:'Если это окажется неправдой — подорвёте доверие.'},
-{s:0,t:'Если не пройдёте медкомиссию — к сожалению, ничего не можем сделать.',f:'Слишком поспешный ответ. Сначала уточните требования к позиции.'}]}
-]},
-{id:'t9',name:'Физические нагрузки',desc:'Нежелание или невозможность физического труда',questions:[
-{id:'q901',q:'Кандидат: «Я не готов к физическим нагрузкам — у меня проблемы со спиной»',answers:[
-{s:3,t:'Спасибо, что сказали сразу — это важно для обеих сторон. Уточните: какие именно нагрузки вас беспокоят? В нашей позиции основная нагрузка — Х часов стоя. Если это противопоказано — лучше знать честно, но возможно, нагрузка меньше, чем вы думаете.',f:'Создаёте безопасный диалог, уточняете реальную нагрузку и не давите.'},
-{s:2,t:'Расскажите подробнее — какие нагрузки нельзя? Уточню у руководителя.',f:'Хороший подход. Убедитесь, что реально уточните и вернётесь с ответом.'},
-{s:1,t:'Работа несложная, многие справляются.',f:'Общая фраза без конкретики. Опишите реальные нагрузки.'},
-{s:0,t:'К сожалению, без физнагрузок эта работа не подойдёт.',f:'Слишком быстрый отказ. Сначала уточните реальные ограничения кандидата.'}]},
-{id:'q902',q:'Кандидат: «Я не привык к работе на ногах целый день»',answers:[
-{s:3,t:'Понимаю, это требует привыкания. Первые 2 недели непросто. У нас есть перерывы каждые 2 часа и удобная спецобувь. Большинство адаптируется за 2–3 недели. Как вы относитесь к физически активной работе в целом?',f:'Честны про трудности, предлагаете конкретную поддержку и уточняете отношение кандидата.'},
-{s:2,t:'Это привычка — через пару недель большинство адаптируется.',f:'Верно, но без конкретики. Расскажите про перерывы, обувь, зоны отдыха.'},
-{s:1,t:'Это не так страшно, как кажется.',f:'Обесценивает реальное опасение. Нужны факты, а не успокоение.'},
-{s:0,t:'Если не готовы стоять — эта работа не для вас.',f:'Закрываете диалог без попытки найти решение.'}]}
-]}
-];
+// ====================================================
+// ВАЖНО: вставьте сюда URL вашего Apps Script после деплоя
+// ====================================================
+const API_URL = 'https://script.google.com/macros/s/AKfycbxVjlSm7hKCKozDLmdS9YjIqO7kbRONSUik4TlQ2_CCRJptoxb_c5m7--lYftBo-aOdyA/exec';
+// ====================================================
 
-let S={recruiterName:'',adminIn:false,adminTab:0,topics:[],leaderboard:[],attempt:{questions:[],idx:0,scores:[],answered:false}};
-function load(){
-  try{const t=localStorage.getItem('rt_v3');S.topics=t?JSON.parse(t):JSON.parse(JSON.stringify(DT));}catch(e){S.topics=JSON.parse(JSON.stringify(DT));}
-  try{const lb=localStorage.getItem('rt_lb_v3');S.leaderboard=lb?JSON.parse(lb):[];}catch(e){S.leaderboard=[];}
+const ADMIN = {u:'admin',p:'recruiter2024'};
+
+let S = {
+  recruiterName: '',
+  adminIn: false,
+  adminTab: 0,
+  topics: [],
+  leaderboard: [],
+  attempt: {questions:[], idx:0, scores:[], answered:false}
+};
+
+// ---- API helpers ----
+async function apiGet(action) {
+  if (!API_URL || API_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return null;
+  try {
+    const r = await fetch(API_URL + '?action=' + action);
+    return await r.json();
+  } catch(e) { return null; }
 }
-function saveT(){try{localStorage.setItem('rt_v3',JSON.stringify(S.topics));}catch(e){}}
-function saveLB(){try{localStorage.setItem('rt_lb_v3',JSON.stringify(S.leaderboard));}catch(e){}}
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById('sc-'+id).classList.add('active');window.scrollTo(0,0);}
-function gotoHome(){
-  if(S.recruiterName){
-    document.getElementById('home-enter').style.display='none';
-    document.getElementById('home-ready').style.display='block';
-    document.getElementById('span-name').textContent=S.recruiterName;
+
+async function apiPost(data) {
+  if (!API_URL || API_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return null;
+  try {
+    const r = await fetch(API_URL, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+    return await r.json();
+  } catch(e) { return null; }
+}
+
+function isApiConfigured() {
+  return !!API_URL;
+}
+
+// ---- Load topics ----
+async function loadTopics() {
+  if (isApiConfigured()) {
+    const res = await apiGet('getTopics');
+    if (res && res.topics) {
+      S.topics = res.topics;
+      return;
+    }
+  }
+  // fallback: localStorage
+  try {
+    const t = localStorage.getItem('rt_v3');
+    S.topics = t ? JSON.parse(t) : [];
+  } catch(e) { S.topics = []; }
+}
+
+async function saveTopicsToAPI() {
+  if (isApiConfigured()) {
+    showSyncStatus('Сохраняем...', 'loading');
+    const res = await apiPost({action:'saveTopics', topics: S.topics});
+    if (res && res.ok) showSyncStatus('Сохранено в Google Таблицу ✓', 'ok');
+    else showSyncStatus('Ошибка сохранения', 'err');
+  } else {
+    localStorage.setItem('rt_v3', JSON.stringify(S.topics));
+  }
+}
+
+function showSyncStatus(msg, type) {
+  const el = document.getElementById('admin-sync-status');
+  if (!el) return;
+  const colors = {loading:'var(--blue-light)', ok:'var(--green-light)', err:'var(--red-light)'};
+  const textColors = {loading:'var(--blue-dark)', ok:'var(--green)', err:'var(--red)'};
+  el.style.display = 'block';
+  el.style.padding = '10px 14px';
+  el.style.borderRadius = 'var(--radius)';
+  el.style.fontSize = '13px';
+  el.style.background = colors[type];
+  el.style.color = textColors[type];
+  el.textContent = msg;
+  if (type !== 'loading') setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ---- Load leaderboard ----
+async function loadLeaderboard() {
+  if (isApiConfigured()) {
+    const res = await apiGet('getLeaderboard');
+    if (res && res.leaderboard) {
+      S.leaderboard = res.leaderboard;
+      return;
+    }
+  }
+  try {
+    const lb = localStorage.getItem('rt_lb_v3');
+    S.leaderboard = lb ? JSON.parse(lb) : [];
+  } catch(e) { S.leaderboard = []; }
+}
+
+async function saveResult(name, score, pct) {
+  if (isApiConfigured()) {
+    await apiPost({action:'saveResult', name, score, pct});
+  } else {
+    let e = S.leaderboard.find(x => x.name === name);
+    if (!e) { e = {name, attempts:0, totalScore:0, avgPct:0}; S.leaderboard.push(e); }
+    e.attempts++;
+    e.totalScore += score;
+    e.avgPct = parseFloat(((e.avgPct*(e.attempts-1)+pct)/e.attempts).toFixed(1));
+    localStorage.setItem('rt_lb_v3', JSON.stringify(S.leaderboard));
+  }
+}
+
+// ---- Navigation ----
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('sc-'+id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+async function gotoHome() {
+  if (S.recruiterName) {
+    document.getElementById('home-enter').style.display = 'none';
+    document.getElementById('home-ready').style.display = 'block';
+    document.getElementById('span-name').textContent = S.recruiterName;
+    await loadLeaderboard();
     renderHomeStats();
   } else {
-    document.getElementById('home-enter').style.display='block';
-    document.getElementById('home-ready').style.display='none';
+    document.getElementById('home-enter').style.display = 'block';
+    document.getElementById('home-ready').style.display = 'none';
   }
   show('home');
 }
-function gotoLb(){renderLb();show('lb');}
-function enterName(){
-  const v=document.getElementById('inp-name').value.trim();
-  if(!v){document.getElementById('inp-name').focus();return;}
-  S.recruiterName=v;
-  document.getElementById('home-enter').style.display='none';
-  document.getElementById('home-ready').style.display='block';
-  document.getElementById('span-name').textContent=v;
+
+async function gotoLb() {
+  show('lb');
+  document.getElementById('lb-loading').style.display = 'flex';
+  document.getElementById('lb-card').style.display = 'none';
+  await loadLeaderboard();
+  renderLb();
+  document.getElementById('lb-loading').style.display = 'none';
+  document.getElementById('lb-card').style.display = 'block';
+}
+
+async function enterName() {
+  const v = document.getElementById('inp-name').value.trim();
+  if (!v) { document.getElementById('inp-name').focus(); return; }
+  S.recruiterName = v;
+  document.getElementById('home-enter').style.display = 'none';
+  document.getElementById('home-ready').style.display = 'block';
+  document.getElementById('span-name').textContent = v;
+  await loadLeaderboard();
   renderHomeStats();
 }
-function resetName(){
-  document.getElementById('inp-name').value='';
-  document.getElementById('home-enter').style.display='block';
-  document.getElementById('home-ready').style.display='none';
+
+function resetName() {
+  document.getElementById('inp-name').value = '';
+  document.getElementById('home-enter').style.display = 'block';
+  document.getElementById('home-ready').style.display = 'none';
 }
-function renderHomeStats(){
-  const e=S.leaderboard.find(x=>x.name===S.recruiterName);
-  const el=document.getElementById('home-stats-wrap');
-  if(!e){el.innerHTML='';return;}
-  el.innerHTML=`<div class="card mb-16"><div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2)">Ваша статистика</div><div class="mini-stats"><div class="mini-stat"><div class="mini-num">${e.attempts}</div><div class="mini-lbl">Попыток</div></div><div class="mini-stat"><div class="mini-num">${Math.round(e.avgPct)}%</div><div class="mini-lbl">Средний результат</div></div><div class="mini-stat"><div class="mini-num">${e.totalScore}</div><div class="mini-lbl">Итого баллов</div></div></div></div>`;
+
+function renderHomeStats() {
+  const e = S.leaderboard.find(x => x.name === S.recruiterName);
+  const el = document.getElementById('home-stats-wrap');
+  if (!e) { el.innerHTML = ''; return; }
+  el.innerHTML = `<div class="card mb-16"><div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2)">Ваша статистика</div><div class="mini-stats"><div class="mini-stat"><div class="mini-num">${e.attempts}</div><div class="mini-lbl">Попыток</div></div><div class="mini-stat"><div class="mini-num">${Math.round(e.avgPct)}%</div><div class="mini-lbl">Средний результат</div></div><div class="mini-stat"><div class="mini-num">${e.totalScore}</div><div class="mini-lbl">Итого баллов</div></div></div></div>`;
 }
-function startAttempt(){
-  const valid=S.topics.filter(t=>t.questions&&t.questions.length>0);
-  if(valid.length<5){alert('Для начала теста нужно минимум 5 тем с вопросами.\n\nСейчас тем с вопросами: '+valid.length);return;}
-  const shuffled=[...valid].sort(()=>Math.random()-.5).slice(0,5);
-  S.attempt.questions=shuffled.map(t=>{const q=t.questions[Math.floor(Math.random()*t.questions.length)];return{topicName:t.name,q};});
-  S.attempt.idx=0;S.attempt.scores=[];S.attempt.answered=false;
-  show('quiz');renderQ();
+
+async function startAttempt() {
+  await loadTopics();
+  const valid = S.topics.filter(t => t.questions && t.questions.length > 0);
+  if (valid.length < 5) { alert('Для начала теста нужно минимум 5 тем с вопросами.\n\nСейчас тем с вопросами: ' + valid.length); return; }
+  const shuffled = [...valid].sort(() => Math.random()-.5).slice(0,5);
+  S.attempt.questions = shuffled.map(t => {
+    const q = t.questions[Math.floor(Math.random()*t.questions.length)];
+    return {topicName: t.name, q};
+  });
+  S.attempt.idx = 0; S.attempt.scores = []; S.attempt.answered = false;
+  show('quiz'); renderQ();
 }
-function renderQ(){
-  const{idx,questions}=S.attempt;const total=questions.length;const item=questions[idx];
-  const pct=Math.round((idx/total)*100);
-  document.getElementById('prog').style.width=pct+'%';
-  document.getElementById('qz-step').textContent='Вопрос '+(idx+1)+' из '+total;
-  document.getElementById('qz-topic-label').innerHTML='<span class="badge badge-blue">'+item.topicName+'</span>';
-  document.getElementById('qz-text').textContent=item.q.q;
-  document.getElementById('qz-fb').innerHTML='';
-  const nb=document.getElementById('qz-next');nb.style.display='none';nb.innerHTML='';
-  S.attempt.answered=false;
-  const shuffled=[...item.q.answers].sort(()=>Math.random()-.5);
-  document.getElementById('qz-answers').innerHTML=shuffled.map((a,i)=>`<button class="ans-btn" onclick="pickAns(${i})" data-s="${a.s}" data-f="${encodeURIComponent(a.f)}">${a.t}</button>`).join('');
+
+function renderQ() {
+  const {idx, questions} = S.attempt;
+  const total = questions.length;
+  const item = questions[idx];
+  const pct = Math.round((idx/total)*100);
+  document.getElementById('prog').style.width = pct+'%';
+  document.getElementById('qz-step').textContent = 'Вопрос '+(idx+1)+' из '+total;
+  document.getElementById('qz-topic-label').innerHTML = '<span class="badge badge-blue">'+item.topicName+'</span>';
+  document.getElementById('qz-text').textContent = item.q.q;
+  document.getElementById('qz-fb').innerHTML = '';
+  const nb = document.getElementById('qz-next'); nb.style.display='none'; nb.innerHTML='';
+  S.attempt.answered = false;
+  const shuffled = [...item.q.answers].sort(() => Math.random()-.5);
+  document.getElementById('qz-answers').innerHTML = shuffled.map((a,i) =>
+    `<button class="ans-btn" onclick="pickAns(${i})" data-s="${a.s}" data-f="${encodeURIComponent(a.f)}">${a.t}</button>`
+  ).join('');
 }
-function pickAns(i){
-  if(S.attempt.answered)return;
-  S.attempt.answered=true;
-  const btns=document.querySelectorAll('.ans-btn');
-  const clicked=btns[i];
-  const score=parseInt(clicked.dataset.s);
-  const fb=decodeURIComponent(clicked.dataset.f);
+
+function pickAns(i) {
+  if (S.attempt.answered) return;
+  S.attempt.answered = true;
+  const btns = document.querySelectorAll('.ans-btn');
+  const clicked = btns[i];
+  const score = parseInt(clicked.dataset.s);
+  const fb = decodeURIComponent(clicked.dataset.f);
   S.attempt.scores.push(score);
-  btns.forEach(b=>{b.disabled=true;const s=parseInt(b.dataset.s);b.classList.add('s'+s);});
-  const lbls=['Неправильно — 0 баллов','Неочевидно неправильно — 1 балл','Хороший ответ — 2 балла','Отличный ответ — 3 балла'];
-  const fbc=['fb0','fb1','fb2','fb3'];
-  document.getElementById('qz-fb').innerHTML=`<div class="fb-box ${fbc[score]}"><div style="font-weight:700;margin-bottom:6px">${lbls[score]}</div>${fb}</div>`;
-  const isLast=S.attempt.idx>=S.attempt.questions.length-1;
-  const nb=document.getElementById('qz-next');
-  nb.innerHTML=`<button class="btn btn-primary" onclick="${isLast?'finishAttempt()':'nextQ()'}"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="margin-right:4px"><path d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"/></svg>${isLast?'Завершить тест':'Следующий вопрос'}</button>`;
-  nb.style.display='block';
+  btns.forEach(b => { b.disabled=true; const s=parseInt(b.dataset.s); b.classList.add('s'+s); });
+  const lbls = ['Неправильно — 0 баллов','Неочевидно неправильно — 1 балл','Хороший ответ — 2 балла','Отличный ответ — 3 балла'];
+  const fbc = ['fb0','fb1','fb2','fb3'];
+  document.getElementById('qz-fb').innerHTML = `<div class="fb-box ${fbc[score]}"><div style="font-weight:700;margin-bottom:6px">${lbls[score]}</div>${fb}</div>`;
+  const isLast = S.attempt.idx >= S.attempt.questions.length-1;
+  const nb = document.getElementById('qz-next');
+  nb.innerHTML = `<button class="btn btn-primary" onclick="${isLast?'finishAttempt()':'nextQ()'}"><svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" style="margin-right:4px"><path d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z"/></svg>${isLast?'Завершить тест':'Следующий вопрос'}</button>`;
+  nb.style.display = 'block';
 }
-function nextQ(){S.attempt.idx++;renderQ();}
-function finishAttempt(){
-  const total=S.attempt.scores.reduce((a,b)=>a+b,0);
-  const max=S.attempt.questions.length*3;
-  const pct=Math.round((total/max)*100);
-  const titles=['Есть над чем поработать!','Неплохо — продолжайте!','Хороший результат!','Отлично!','Мастер возражений!'];
-  const ti=pct<30?0:pct<50?1:pct<70?2:pct<90?3:4;
-  document.getElementById('res-title').textContent=titles[ti];
-  document.getElementById('res-name').textContent=S.recruiterName;
-  document.getElementById('res-score').textContent=total+' / '+max;
-  document.getElementById('res-pct').textContent=pct+'%';
-  const fbcls=['badge-red','badge-amber','badge-blue','badge-green'];
-  const scoreLabels=['Неправильно — 0','Неочевидно — 1','Хорошо — 2','Отлично — 3'];
-  document.getElementById('res-breakdown').innerHTML=S.attempt.questions.map((item,i)=>{const sc=S.attempt.scores[i]??0;return`<div class="score-row"><span class="badge badge-purple" style="max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.topicName}</span><span class="badge ${fbcls[sc]}">${scoreLabels[sc]}</span></div>`;}).join('');
-  updateLB(S.recruiterName,total,pct);
+
+function nextQ() { S.attempt.idx++; renderQ(); }
+
+async function finishAttempt() {
+  const total = S.attempt.scores.reduce((a,b) => a+b, 0);
+  const max = S.attempt.questions.length * 3;
+  const pct = Math.round((total/max)*100);
+  const titles = ['Есть над чем поработать!','Неплохо — продолжайте!','Хороший результат!','Отлично!','Мастер возражений!'];
+  const ti = pct<30?0:pct<50?1:pct<70?2:pct<90?3:4;
+  document.getElementById('res-title').textContent = titles[ti];
+  document.getElementById('res-name').textContent = S.recruiterName;
+  document.getElementById('res-score').textContent = total+' / '+max;
+  document.getElementById('res-pct').textContent = pct+'%';
+  const fbcls = ['badge-red','badge-amber','badge-blue','badge-green'];
+  const scoreLabels = ['Неправильно — 0','Неочевидно — 1','Хорошо — 2','Отлично — 3'];
+  document.getElementById('res-breakdown').innerHTML = S.attempt.questions.map((item,i) => {
+    const sc = S.attempt.scores[i]??0;
+    return `<div class="score-row"><span class="badge badge-purple" style="max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.topicName}</span><span class="badge ${fbcls[sc]}">${scoreLabels[sc]}</span></div>`;
+  }).join('');
+  await saveResult(S.recruiterName, total, pct);
   show('results');
 }
-function updateLB(name,score,pct){
-  let e=S.leaderboard.find(x=>x.name===name);
-  if(!e){e={name,attempts:0,totalScore:0,avgPct:0};S.leaderboard.push(e);}
-  e.attempts++;e.totalScore+=score;
-  e.avgPct=parseFloat(((e.avgPct*(e.attempts-1)+pct)/e.attempts).toFixed(1));
-  saveLB();
-}
-function confirmExit(){if(confirm('Выйти из теста? Прогресс текущей попытки не сохранится.'))gotoHome();}
-function renderLb(){
-  const sorted=[...S.leaderboard].sort((a,b)=>b.totalScore-a.totalScore);
-  const el=document.getElementById('lb-list');
-  if(!sorted.length){el.innerHTML='<div class="empty-state">Рейтинг пока пуст — пройдите первый тест!</div>';return;}
-  el.innerHTML=sorted.map((e,i)=>{
-    const rc=i===0?'r1':i===1?'r2':i===2?'r3':'rn';
-    const p=Math.round(e.avgPct);
-    const bc=p>=80?'badge-green':p>=50?'badge-blue':p>=30?'badge-amber':'badge-red';
-    return`<div class="lb-row"><div><span class="rnk ${rc}">${i+1}</span></div><div style="font-weight:${i<3?600:400}">${e.name}</div><div style="text-align:center;color:var(--text2)">${e.attempts}</div><div style="text-align:center"><span class="badge ${bc}">${p}%</span></div><div style="text-align:center;font-weight:600">${e.totalScore}</div></div>`;
+
+function confirmExit() { if (confirm('Выйти из теста? Прогресс текущей попытки не сохранится.')) gotoHome(); }
+
+function renderLb() {
+  const sorted = [...S.leaderboard].sort((a,b) => b.totalScore - a.totalScore);
+  const el = document.getElementById('lb-list');
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty-state">Рейтинг пока пуст — пройдите первый тест!</div>';
+    return;
+  }
+  el.innerHTML = sorted.map((e,i) => {
+    const rc = i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    const p = Math.round(e.avgPct);
+    const bc = p>=80?'badge-green':p>=50?'badge-blue':p>=30?'badge-amber':'badge-red';
+    return `<div class="lb-row"><div><span class="rnk ${rc}">${i+1}</span></div><div style="font-weight:${i<3?600:400}">${e.name}</div><div style="text-align:center;color:var(--text2)">${e.attempts}</div><div style="text-align:center"><span class="badge ${bc}">${p}%</span></div><div style="text-align:center;font-weight:600">${e.totalScore}</div></div>`;
   }).join('');
 }
-function showAdminLogin(){
-  if(S.adminIn){renderAdmin();show('admin');return;}
-  document.getElementById('al-user').value='';document.getElementById('al-pass').value='';document.getElementById('al-err').style.display='none';
+
+// ---- Admin ----
+function showAdminLogin() {
+  if (S.adminIn) { renderAdmin(); show('admin'); return; }
+  document.getElementById('al-user').value = '';
+  document.getElementById('al-pass').value = '';
+  document.getElementById('al-err').style.display = 'none';
   openOv('ov-admin-login');
 }
-function doLogin(){
-  const u=document.getElementById('al-user').value.trim();const p=document.getElementById('al-pass').value.trim();
-  if(u===ADMIN.u&&p===ADMIN.p){S.adminIn=true;closeOv('ov-admin-login');renderAdmin();show('admin');}
-  else document.getElementById('al-err').style.display='block';
+
+async function doLogin() {
+  const u = document.getElementById('al-user').value.trim();
+  const p = document.getElementById('al-pass').value.trim();
+  if (u===ADMIN.u && p===ADMIN.p) {
+    S.adminIn = true;
+    closeOv('ov-admin-login');
+    await loadTopics();
+    renderAdmin();
+    show('admin');
+  } else {
+    document.getElementById('al-err').style.display = 'block';
+  }
 }
-function doLogout(){S.adminIn=false;gotoHome();}
-function openOv(id){document.getElementById(id).classList.add('on');}
-function closeOv(id){document.getElementById(id).classList.remove('on');}
-function renderAdmin(){
-  document.getElementById('admin-tabs').innerHTML=S.topics.map((t,i)=>`<button class="tab ${i===S.adminTab?'on':''}" onclick="switchTab(${i})">${t.name}<span class="topic-count">${t.questions?t.questions.length:0}</span></button>`).join('');
+function doLogout() { S.adminIn = false; gotoHome(); }
+
+function openOv(id) { document.getElementById(id).classList.add('on'); }
+function closeOv(id) { document.getElementById(id).classList.remove('on'); }
+
+function renderAdmin() {
+  document.getElementById('admin-tabs').innerHTML = S.topics.map((t,i) =>
+    `<button class="tab ${i===S.adminTab?'on':''}" onclick="switchTab(${i})">${t.name}<span class="topic-count">${t.questions?t.questions.length:0}</span></button>`
+  ).join('');
   renderAdminBody();
 }
-function switchTab(i){S.adminTab=i;renderAdmin();}
-function renderAdminBody(){
-  const t=S.topics[S.adminTab];
-  if(!t){document.getElementById('admin-body').innerHTML='<div class="empty-state">Нет тем. Создайте первую!</div>';return;}
-  const el=document.getElementById('admin-body');
-  el.innerHTML=`<div class="flex between items-center mb-16" style="flex-wrap:wrap;gap:8px"><div class="flex items-center gap-12"><h3>${t.name}</h3>${t.desc?`<span class="small muted">${t.desc}</span>`:''}</div><div class="flex gap-8"><button class="btn btn-sm" onclick="openEditTopic(${S.adminTab})">Изменить тему</button><button class="btn btn-danger btn-sm" onclick="deleteTopic(${S.adminTab})">Удалить тему</button></div></div>${(t.questions&&t.questions.length>0)?t.questions.map((q,qi)=>`<div class="q-item"><div class="q-item-text">${q.q}</div><div>${q.answers.map(a=>`<div class="a-row"><span class="sdot d${a.s}">${a.s}</span><span class="small muted" style="line-height:1.4">${a.t}</span></div>`).join('')}</div><div class="flex gap-8 mt-8"><button class="btn btn-sm" onclick="openEditQ(${S.adminTab},${qi})">Изменить</button><button class="btn btn-danger btn-sm" onclick="deleteQ(${S.adminTab},${qi})">Удалить</button></div></div>`).join(''):'<div class="empty-state">В этой теме пока нет вопросов.<br>Нажмите «+ Новый вопрос» чтобы добавить.</div>'}`;
+function switchTab(i) { S.adminTab=i; renderAdmin(); }
+
+function renderAdminBody() {
+  const t = S.topics[S.adminTab];
+  if (!t) { document.getElementById('admin-body').innerHTML='<div class="empty-state">Нет тем. Создайте первую!</div>'; return; }
+  document.getElementById('admin-body').innerHTML = `
+    <div class="flex between items-center mb-16" style="flex-wrap:wrap;gap:8px">
+      <div class="flex items-center gap-12"><h3>${t.name}</h3>${t.desc?`<span class="small muted">${t.desc}</span>`:''}</div>
+      <div class="flex gap-8">
+        <button class="btn btn-sm" onclick="openEditTopic(${S.adminTab})">Изменить тему</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteTopic(${S.adminTab})">Удалить тему</button>
+      </div>
+    </div>
+    ${(t.questions&&t.questions.length>0) ? t.questions.map((q,qi) => `
+      <div class="q-item">
+        <div class="q-item-text">${q.q}</div>
+        <div>${q.answers.map(a=>`<div class="a-row"><span class="sdot d${a.s}">${a.s}</span><span class="small muted" style="line-height:1.4">${a.t}</span></div>`).join('')}</div>
+        <div class="flex gap-8 mt-8">
+          <button class="btn btn-sm" onclick="openEditQ(${S.adminTab},${qi})">Изменить</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteQ(${S.adminTab},${qi})">Удалить</button>
+        </div>
+      </div>`).join('') : '<div class="empty-state">В этой теме пока нет вопросов.</div>'}`;
 }
-function openAddTopic(){
-  document.getElementById('ot-idx').value='';document.getElementById('ot-title').textContent='Новая тема';
-  document.getElementById('ot-name').value='';document.getElementById('ot-desc').value='';
+
+function openAddTopic() {
+  document.getElementById('ot-idx').value='';
+  document.getElementById('ot-title').textContent='Новая тема';
+  document.getElementById('ot-name').value='';
+  document.getElementById('ot-desc').value='';
   openOv('ov-add-topic');
 }
-function openEditTopic(i){
-  const t=S.topics[i];
-  document.getElementById('ot-idx').value=i;document.getElementById('ot-title').textContent='Изменить тему';
-  document.getElementById('ot-name').value=t.name;document.getElementById('ot-desc').value=t.desc||'';
+function openEditTopic(i) {
+  const t = S.topics[i];
+  document.getElementById('ot-idx').value=i;
+  document.getElementById('ot-title').textContent='Изменить тему';
+  document.getElementById('ot-name').value=t.name;
+  document.getElementById('ot-desc').value=t.desc||'';
   openOv('ov-add-topic');
 }
-function saveTopic(){
-  const name=document.getElementById('ot-name').value.trim();if(!name){alert('Введите название темы');return;}
-  const desc=document.getElementById('ot-desc').value.trim();const idx=document.getElementById('ot-idx').value;
-  if(idx!==''){S.topics[parseInt(idx)].name=name;S.topics[parseInt(idx)].desc=desc;}
-  else{S.topics.push({id:'t'+Date.now(),name,desc,questions:[]});S.adminTab=S.topics.length-1;}
-  saveT();closeOv('ov-add-topic');renderAdmin();
+async function saveTopic() {
+  const name = document.getElementById('ot-name').value.trim();
+  if (!name) { alert('Введите название темы'); return; }
+  const desc = document.getElementById('ot-desc').value.trim();
+  const idx = document.getElementById('ot-idx').value;
+  if (idx!=='') { S.topics[parseInt(idx)].name=name; S.topics[parseInt(idx)].desc=desc; }
+  else { S.topics.push({id:'t'+Date.now(),name,desc,questions:[]}); S.adminTab=S.topics.length-1; }
+  await saveTopicsToAPI();
+  closeOv('ov-add-topic'); renderAdmin();
 }
-function deleteTopic(i){
-  if(!confirm('Удалить тему "'+S.topics[i].name+'" и все её вопросы ('+( S.topics[i].questions?S.topics[i].questions.length:0)+' шт.)?'))return;
-  S.topics.splice(i,1);if(S.adminTab>=S.topics.length)S.adminTab=Math.max(0,S.topics.length-1);
-  saveT();renderAdmin();
+async function deleteTopic(i) {
+  if (!confirm('Удалить тему "'+S.topics[i].name+'" и все её вопросы?')) return;
+  S.topics.splice(i,1);
+  if (S.adminTab>=S.topics.length) S.adminTab=Math.max(0,S.topics.length-1);
+  await saveTopicsToAPI();
+  renderAdmin();
 }
-function openAddQ(){
-  const sel=document.getElementById('oq-topic');
-  sel.innerHTML=S.topics.map((t,i)=>`<option value="${i}" ${i===S.adminTab?'selected':''}>${t.name}</option>`).join('');
-  document.getElementById('oq-title').textContent='Новый вопрос';document.getElementById('oq-qid').value='';
-  ['oq-q','oq-a3','oq-f3','oq-a2','oq-f2','oq-a1','oq-f1','oq-a0','oq-f0'].forEach(id=>document.getElementById(id).value='');
+
+function openAddQ() {
+  const sel = document.getElementById('oq-topic');
+  sel.innerHTML = S.topics.map((t,i) => `<option value="${i}" ${i===S.adminTab?'selected':''}>${t.name}</option>`).join('');
+  document.getElementById('oq-title').textContent='Новый вопрос';
+  document.getElementById('oq-qid').value='';
+  ['oq-q','oq-a3','oq-f3','oq-a2','oq-f2','oq-a1','oq-f1','oq-a0','oq-f0'].forEach(id => document.getElementById(id).value='');
   openOv('ov-add-q');
 }
-function openEditQ(ti,qi){
-  const q=S.topics[ti].questions[qi];
-  const sel=document.getElementById('oq-topic');
-  sel.innerHTML=S.topics.map((t,i)=>`<option value="${i}" ${i===ti?'selected':''}>${t.name}</option>`).join('');
-  document.getElementById('oq-title').textContent='Изменить вопрос';document.getElementById('oq-qid').value=ti+'_'+qi;
+function openEditQ(ti,qi) {
+  const q = S.topics[ti].questions[qi];
+  const sel = document.getElementById('oq-topic');
+  sel.innerHTML = S.topics.map((t,i) => `<option value="${i}" ${i===ti?'selected':''}>${t.name}</option>`).join('');
+  document.getElementById('oq-title').textContent='Изменить вопрос';
+  document.getElementById('oq-qid').value=ti+'_'+qi;
   document.getElementById('oq-q').value=q.q;
-  [3,2,1,0].forEach(s=>{const a=q.answers.find(x=>x.s===s)||{};document.getElementById('oq-a'+s).value=a.t||'';document.getElementById('oq-f'+s).value=a.f||'';});
+  [3,2,1,0].forEach(s => {
+    const a = q.answers.find(x=>x.s===s)||{};
+    document.getElementById('oq-a'+s).value=a.t||'';
+    document.getElementById('oq-f'+s).value=a.f||'';
+  });
   openOv('ov-add-q');
 }
-function saveQ(){
-  const ti=parseInt(document.getElementById('oq-topic').value);const qidRaw=document.getElementById('oq-qid').value;
-  const qtext=document.getElementById('oq-q').value.trim();if(!qtext){alert('Введите текст возражения');return;}
-  const answers=[3,2,1,0].map(s=>({s,t:document.getElementById('oq-a'+s).value.trim(),f:document.getElementById('oq-f'+s).value.trim()})).filter(a=>a.t);
-  if(answers.length<2){alert('Добавьте хотя бы 2 варианта ответа');return;}
-  const newQ={id:'q'+Date.now(),q:qtext,answers};
-  if(!S.topics[ti].questions)S.topics[ti].questions=[];
-  if(qidRaw){const p=qidRaw.split('_');S.topics[parseInt(p[0])].questions[parseInt(p[1])]=newQ;}
+async function saveQ() {
+  const ti = parseInt(document.getElementById('oq-topic').value);
+  const qidRaw = document.getElementById('oq-qid').value;
+  const qtext = document.getElementById('oq-q').value.trim();
+  if (!qtext) { alert('Введите текст возражения'); return; }
+  const answers = [3,2,1,0].map(s => ({
+    s, t: document.getElementById('oq-a'+s).value.trim(), f: document.getElementById('oq-f'+s).value.trim()
+  })).filter(a=>a.t);
+  if (answers.length<2) { alert('Добавьте хотя бы 2 варианта ответа'); return; }
+  const newQ = {id:'q'+Date.now(), q:qtext, answers};
+  if (!S.topics[ti].questions) S.topics[ti].questions=[];
+  if (qidRaw) { const p=qidRaw.split('_'); S.topics[parseInt(p[0])].questions[parseInt(p[1])]=newQ; }
   else S.topics[ti].questions.push(newQ);
-  S.adminTab=ti;saveT();closeOv('ov-add-q');renderAdmin();
+  S.adminTab=ti;
+  await saveTopicsToAPI();
+  closeOv('ov-add-q'); renderAdmin();
 }
-function deleteQ(ti,qi){
-  if(!confirm('Удалить этот вопрос?'))return;
-  S.topics[ti].questions.splice(qi,1);saveT();renderAdminBody();
+async function deleteQ(ti,qi) {
+  if (!confirm('Удалить этот вопрос?')) return;
+  S.topics[ti].questions.splice(qi,1);
+  await saveTopicsToAPI();
+  renderAdminBody();
 }
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&document.getElementById('ov-admin-login').classList.contains('on'))doLogin();});
-document.querySelectorAll('.overlay').forEach(ov=>{ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('on');});});
-load();gotoHome();
+
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('ov-admin-login').classList.contains('on')) doLogin();
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if (e.target===ov) ov.classList.remove('on'); });
+});
+
+gotoHome();
 </script>
 </body>
 </html>
