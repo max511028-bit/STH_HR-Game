@@ -101,6 +101,17 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 .loading-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--blue-light);border-radius:var(--radius);border:1px solid var(--blue);font-size:13px;color:var(--blue-dark);margin-bottom:16px}
 .spinner{width:16px;height:16px;border:2px solid var(--blue);border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+.bar-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.bar-label{width:220px;flex-shrink:0;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.bar-track{flex:1;height:22px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative}
+.bar-fill{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font-size:11px;font-weight:600;color:#fff;white-space:nowrap}
+.bar-count{width:60px;flex-shrink:0;font-size:11px;color:var(--text3);text-align:left}
+.bar-fill.good{background:var(--green)}
+.bar-fill.ok{background:var(--blue)}
+.bar-fill.bad{background:var(--amber)}
+.bar-fill.poor{background:var(--red)}
+
 .setup-banner{padding:16px;background:var(--amber-light);border:1px solid var(--amber);border-radius:var(--radius);font-size:13px;color:var(--amber);margin-bottom:16px;line-height:1.6}
 @media(max-width:600px){
   .lb-row{grid-template-columns:32px 1fr 56px 64px}.lb-row>:nth-child(5){display:none}
@@ -117,6 +128,7 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
   </span>
   <div class="nav-right">
     <button class="btn btn-sm" onclick="gotoLb()">Рейтинг</button>
+    <button class="btn btn-sm" onclick="gotoStats()">Аналитика</button>
     <button class="btn btn-sm" onclick="showAdminLogin()">Админ</button>
   </div>
 </div>
@@ -217,6 +229,35 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
   </div>
 </div>
 
+
+<div class="screen" id="sc-stats">
+  <div class="page" style="max-width:760px">
+    <div class="flex between items-center mb-20">
+      <h2>Аналитика команды</h2>
+      <button class="btn btn-sm" onclick="gotoHome()">На главную</button>
+    </div>
+    <div id="stats-loading" class="loading-bar"><div class="spinner"></div>Загружаем аналитику...</div>
+    <div id="stats-body" style="display:none">
+      <div class="stat-grid mb-16" id="stats-summary"></div>
+      <div class="card mb-16">
+        <div class="fw6 mb-4" style="font-size:15px">Результаты по темам</div>
+        <p class="small muted mb-16">Средний % правильных ответов по каждой теме — отсортировано от худшего к лучшему</p>
+        <div id="chart-topics"></div>
+      </div>
+      <div class="card mb-16">
+        <div class="fw6 mb-4" style="font-size:15px">Топ-5 проблемных возражений</div>
+        <p class="small muted mb-16">Вопросы с наименьшим средним баллом — зоны роста команды</p>
+        <div id="chart-worst"></div>
+      </div>
+      <div class="card">
+        <div class="fw6 mb-4" style="font-size:15px">Топ-5 лучших возражений</div>
+        <p class="small muted mb-16">Вопросы с наибольшим средним баллом — сильные стороны команды</p>
+        <div id="chart-best"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="screen" id="sc-admin">
   <div class="page-wide">
     <div class="flex between items-center mb-16" style="flex-wrap:wrap;gap:8px">
@@ -302,7 +343,7 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 // ====================================================
 // ВАЖНО: вставьте сюда URL вашего Apps Script после деплоя
 // ====================================================
-const API_URL = 'https://script.google.com/macros/s/AKfycbw_YQR3xvRwPlrDdMVeg2N1nww4JTKB5qf6lem6m6lhz7uDQU5Ft4bOmF4R_Pe39YXP/exec';
+const API_URL = 'https://script.google.com/macros/s/AKfycbx5TP6ltuBbOqzw-o_BgvHK8Efi7ahxpFCgJKqqd2mcCA1OgV1wIg7kEEgmbt9dq4zt/exec';
 // ====================================================
 
 const ADMIN = {u:'admin',p:'recruiter2024'};
@@ -336,6 +377,9 @@ async function apiPost(data) {
            + '&pct=' + data.pct;
     } else if (action === 'saveTopics') {
       url += '&topics=' + encodeURIComponent(JSON.stringify(data.topics));
+    } else if (action === 'saveDetails') {
+      url += '&name=' + encodeURIComponent(data.name)
+           + '&details=' + encodeURIComponent(JSON.stringify(data.details));
     }
     const r = await fetch(url);
     return await r.json();
@@ -539,6 +583,13 @@ async function finishAttempt() {
     return `<div class="score-row"><span class="badge badge-purple" style="max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.topicName}</span><span class="badge ${fbcls[sc]}">${scoreLabels[sc]}</span></div>`;
   }).join('');
   await saveResult(S.recruiterName, total, pct);
+  // Сохраняем детальную статистику по каждому вопросу
+  const details = S.attempt.questions.map((item, i) => ({
+    topicName: item.topicName,
+    questionText: item.q.q.substring(0, 120),
+    score: S.attempt.scores[i] ?? 0
+  }));
+  await apiPost({action: 'saveDetails', name: S.recruiterName, details});
   show('results');
 }
 
@@ -693,6 +744,76 @@ async function deleteQ(ti,qi) {
   S.topics[ti].questions.splice(qi,1);
   await saveTopicsToAPI();
   renderAdminBody();
+}
+
+
+async function gotoStats() {
+  show('stats');
+  document.getElementById('stats-loading').style.display = 'flex';
+  document.getElementById('stats-body').style.display = 'none';
+  const res = await apiGet('getStats');
+  document.getElementById('stats-loading').style.display = 'none';
+  document.getElementById('stats-body').style.display = 'block';
+  if (!res || !res.topicStats) {
+    document.getElementById('stats-body').innerHTML = '<div class="empty-state">Данных пока нет — пройдите первые тесты!</div>';
+    return;
+  }
+  renderStats(res);
+}
+
+function renderStats(data) {
+  const {topicStats, questionStats, totalAnswers} = data;
+
+  // Summary cards
+  const avgAll = topicStats.length ? Math.round(topicStats.reduce((s,t) => s+t.avgPct, 0) / topicStats.length) : 0;
+  const worst = topicStats[0] || {};
+  const best = topicStats[topicStats.length-1] || {};
+  document.getElementById('stats-summary').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${totalAnswers}</div><div class="stat-lbl">Всего ответов</div></div>
+    <div class="stat-box"><div class="stat-num">${avgAll}%</div><div class="stat-lbl">Средний результат</div></div>
+    <div class="stat-box" style="border-color:var(--red)"><div class="stat-num" style="color:var(--red);font-size:14px">${worst.name || '—'}</div><div class="stat-lbl">Слабая тема</div></div>
+    <div class="stat-box" style="border-color:var(--green)"><div class="stat-num" style="color:var(--green);font-size:14px">${best.name || '—'}</div><div class="stat-lbl">Сильная тема</div></div>
+  `;
+
+  // Topics chart
+  const topicsHtml = topicStats.map(t => {
+    const cls = t.avgPct >= 80 ? 'good' : t.avgPct >= 60 ? 'ok' : t.avgPct >= 40 ? 'bad' : 'poor';
+    return `<div class="bar-row">
+      <div class="bar-label" title="${t.name}">${t.name}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${t.avgPct}%">${t.avgPct}%</div>
+      </div>
+      <div class="bar-count">${t.count} отв.</div>
+    </div>`;
+  }).join('');
+  document.getElementById('chart-topics').innerHTML = topicsHtml || '<p class="muted small">Нет данных</p>';
+
+  // Worst 5 questions
+  const worst5 = questionStats.slice(0, 5);
+  document.getElementById('chart-worst').innerHTML = worst5.map(q => {
+    const cls = q.avgPct >= 60 ? 'ok' : q.avgPct >= 40 ? 'bad' : 'poor';
+    const short = q.questionText.length > 70 ? q.questionText.substring(0,70)+'…' : q.questionText;
+    return `<div class="bar-row">
+      <div class="bar-label" title="${q.questionText}" style="font-size:12px"><span style="color:var(--text3)">${q.topicName}</span><br>${short}</div>
+      <div class="bar-track">
+        <div class="bar-fill ${cls}" style="width:${q.avgPct}%">${q.avgPct}%</div>
+      </div>
+      <div class="bar-count">${q.count} отв.</div>
+    </div>`;
+  }).join('') || '<p class="muted small">Нет данных</p>';
+
+  // Best 5 questions
+  const best5 = [...questionStats].sort((a,b) => b.avgPct - a.avgPct).slice(0, 5);
+  document.getElementById('chart-best').innerHTML = best5.map(q => {
+    const short = q.questionText.length > 70 ? q.questionText.substring(0,70)+'…' : q.questionText;
+    return `<div class="bar-row">
+      <div class="bar-label" title="${q.questionText}" style="font-size:12px"><span style="color:var(--text3)">${q.topicName}</span><br>${short}</div>
+      <div class="bar-track">
+        <div class="bar-fill good" style="width:${q.avgPct}%">${q.avgPct}%</div>
+      </div>
+      <div class="bar-count">${q.count} отв.</div>
+    </div>`;
+  }).join('') || '<p class="muted small">Нет данных</p>';
 }
 
 document.addEventListener('keydown', e => {
