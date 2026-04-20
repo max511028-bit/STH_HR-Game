@@ -318,7 +318,7 @@ let S = {
 
 // ---- API helpers ----
 async function apiGet(action) {
-  if (!API_URL || API_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return null;
+  if (!API_URL) return null;
   try {
     const r = await fetch(API_URL + '?action=' + action);
     return await r.json();
@@ -326,12 +326,18 @@ async function apiGet(action) {
 }
 
 async function apiPost(data) {
-  if (!API_URL || API_URL === 'PASTE_YOUR_APPS_SCRIPT_URL_HERE') return null;
+  if (!API_URL) return null;
   try {
-    const r = await fetch(API_URL, {
-      method: 'POST',
-      body: JSON.stringify(data)
-    });
+    const action = data.action;
+    let url = API_URL + '?action=' + action;
+    if (action === 'saveResult') {
+      url += '&name=' + encodeURIComponent(data.name)
+           + '&score=' + data.score
+           + '&pct=' + data.pct;
+    } else if (action === 'saveTopics') {
+      url += '&topics=' + encodeURIComponent(JSON.stringify(data.topics));
+    }
+    const r = await fetch(url);
     return await r.json();
   } catch(e) { return null; }
 }
