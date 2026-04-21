@@ -112,6 +112,38 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 .bar-fill.bad{background:var(--amber)}
 .bar-fill.poor{background:var(--red)}
 
+
+/* === STREAK & ACHIEVEMENTS === */
+.streak-box{display:flex;align-items:center;gap:10px;padding:14px 18px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px}
+.streak-flame{font-size:28px;line-height:1}
+.streak-num{font-size:26px;font-weight:700;color:var(--amber);line-height:1}
+.streak-lbl{font-size:12px;color:var(--text2);margin-top:2px}
+.achiev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px}
+.achiev-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;text-align:center;transition:opacity .2s}
+.achiev-card.locked{opacity:.4;filter:grayscale(1)}
+.achiev-icon{font-size:28px;margin-bottom:6px}
+.achiev-name{font-size:12px;font-weight:600;margin-bottom:3px}
+.achiev-desc{font-size:11px;color:var(--text2);line-height:1.4}
+/* === TOAST ACHIEVEMENT === */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:var(--radius-lg);font-size:13px;font-weight:500;z-index:999;transition:transform .4s cubic-bezier(.34,1.56,.64,1);display:flex;align-items:center;gap:10px;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+/* === VS TEAM CHART === */
+.vs-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;font-size:13px}
+.vs-label{width:80px;flex-shrink:0;font-weight:600;font-size:12px}
+.vs-track{flex:1;height:22px;background:var(--bg2);border-radius:4px;overflow:hidden;position:relative}
+.vs-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;transition:width .8s ease}
+.vs-me{background:var(--blue)}
+.vs-team{background:var(--text3)}
+/* === MY TOPICS === */
+.my-topic-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font-size:13px}
+.my-topic-name{width:200px;flex-shrink:0;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+.my-topic-track{flex:1;height:22px;background:var(--bg2);border-radius:4px;overflow:hidden}
+.my-topic-fill{height:100%;border-radius:4px;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:11px;font-weight:700;color:#fff;transition:width .6s ease}
+.delta-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;flex-shrink:0;width:52px;text-align:center}
+.delta-up{background:var(--green-light);color:var(--green)}
+.delta-down{background:var(--red-light);color:var(--red)}
+.delta-eq{background:var(--bg2);color:var(--text2)}
+
 .setup-banner{padding:16px;background:var(--amber-light);border:1px solid var(--amber);border-radius:var(--radius);font-size:13px;color:var(--amber);margin-bottom:16px;line-height:1.6}
 @media(max-width:600px){
   .lb-row{grid-template-columns:32px 1fr 56px 64px}.lb-row>:nth-child(5){display:none}
@@ -128,6 +160,7 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
   </span>
   <div class="nav-right">
     <button class="btn btn-sm" onclick="gotoLb()">Рейтинг</button>
+    <button class="btn btn-sm" onclick="gotoProfile()">Мой профиль</button>
     <button class="btn btn-sm" onclick="gotoStats()">Аналитика</button>
     <button class="btn btn-sm" onclick="showAdminLogin()">Админ</button>
   </div>
@@ -229,6 +262,46 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
   </div>
 </div>
 
+
+
+<div class="screen" id="sc-profile">
+  <div class="page" style="max-width:640px">
+    <div class="flex between items-center mb-20">
+      <h2>Мой профиль</h2>
+      <button class="btn btn-sm" onclick="gotoHome()">На главную</button>
+    </div>
+    <div id="profile-loading" class="loading-bar"><div class="spinner"></div>Загружаем данные...</div>
+    <div id="profile-body" style="display:none">
+
+      <!-- Streak -->
+      <div class="streak-box mb-4" id="profile-streak"></div>
+
+      <!-- Summary stats -->
+      <div class="stat-grid mb-16" id="profile-summary"></div>
+
+      <!-- Я vs Команда -->
+      <div class="card mb-16">
+        <div class="fw6 mb-4" style="font-size:15px">Я vs Команда</div>
+        <p class="small muted mb-16">Сравнение твоего среднего результата с командой по каждой теме</p>
+        <div id="profile-vs"></div>
+      </div>
+
+      <!-- Мои темы -->
+      <div class="card mb-16">
+        <div class="fw6 mb-4" style="font-size:15px">Мои темы</div>
+        <p class="small muted mb-16">Твои результаты по темам — от слабых к сильным</p>
+        <div id="profile-topics"></div>
+      </div>
+
+      <!-- Ачивки -->
+      <div class="card">
+        <div class="fw6 mb-4" style="font-size:15px">Достижения</div>
+        <p class="small muted mb-8">Разблокировано: <span id="achiev-count" style="font-weight:600;color:var(--blue)">0</span></p>
+        <div class="achiev-grid" id="profile-achievements"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="screen" id="sc-stats">
   <div class="page" style="max-width:760px">
@@ -512,7 +585,11 @@ function renderHomeStats() {
   const e = S.leaderboard.find(x => x.name === S.recruiterName);
   const el = document.getElementById('home-stats-wrap');
   if (!e) { el.innerHTML = ''; return; }
-  el.innerHTML = `<div class="card mb-16"><div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2)">Ваша статистика</div><div class="mini-stats"><div class="mini-stat"><div class="mini-num">${e.attempts}</div><div class="mini-lbl">Попыток</div></div><div class="mini-stat"><div class="mini-num">${Math.round(e.avgPct)}%</div><div class="mini-lbl">Средний результат</div></div><div class="mini-stat"><div class="mini-num">${e.totalScore}</div><div class="mini-lbl">Итого баллов</div></div></div></div>`;
+  const streak = getStreak();
+  const streakHtml = streak > 0
+    ? `<div class="streak-box mb-8"><div class="streak-flame">🔥</div><div><div class="streak-num">${streak}</div><div class="streak-lbl">день${streak===1?'':'я'} подряд</div></div></div>`
+    : '';
+  el.innerHTML = streakHtml + `<div class="card mb-16"><div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--text2)">Ваша статистика</div><div class="mini-stats"><div class="mini-stat"><div class="mini-num">${e.attempts}</div><div class="mini-lbl">Попыток</div></div><div class="mini-stat"><div class="mini-num">${Math.round(e.avgPct)}%</div><div class="mini-lbl">Средний результат</div></div><div class="mini-stat"><div class="mini-num">${e.totalScore}</div><div class="mini-lbl">Итого баллов</div></div></div></div>`;
 }
 
 async function startAttempt() {
@@ -592,6 +669,8 @@ async function finishAttempt() {
     score: S.attempt.scores[i] ?? 0
   }));
   await apiPost({action: 'saveDetails', name: S.recruiterName, details});
+  updateStreak();
+  checkAchievements(total, pct);
   show('results');
 }
 
@@ -818,6 +897,225 @@ function renderStats(data) {
   }).join('') || '<p class="muted small">Нет данных</p>';
 }
 
+
+// ===================================================
+// STREAK
+// ===================================================
+function getStreak() {
+  try {
+    const key = 'rt_streak_' + S.recruiterName;
+    const data = JSON.parse(localStorage.getItem(key) || '{"streak":0,"lastDate":""}');
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (data.lastDate === today) return data.streak;
+    if (data.lastDate === yesterday) return data.streak;
+    return 0;
+  } catch(e) { return 0; }
+}
+
+function updateStreak() {
+  try {
+    const key = 'rt_streak_' + S.recruiterName;
+    const data = JSON.parse(localStorage.getItem(key) || '{"streak":0,"lastDate":""}');
+    const today = new Date().toDateString();
+    const yesterday = new Date(Date.now() - 86400000).toDateString();
+    if (data.lastDate === today) return; // already updated today
+    if (data.lastDate === yesterday) {
+      data.streak++;
+    } else {
+      data.streak = 1;
+    }
+    data.lastDate = today;
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch(e) {}
+}
+
+// ===================================================
+// ACHIEVEMENTS
+// ===================================================
+const ACHIEVEMENTS = [
+  {id:'first',icon:'🎯',name:'Первый шаг',desc:'Пройти первый тест',check:(s)=>s.attempts>=1},
+  {id:'try5',icon:'💪',name:'Тренируюсь',desc:'5 попыток',check:(s)=>s.attempts>=5},
+  {id:'try20',icon:'🏋️',name:'Упорный',desc:'20 попыток',check:(s)=>s.attempts>=20},
+  {id:'pct80',icon:'⭐',name:'Отличник',desc:'80%+ в одной попытке',check:(s)=>s.bestPct>=80},
+  {id:'pct100',icon:'🏆',name:'Мастер',desc:'100% в одной попытке',check:(s)=>s.bestPct>=100},
+  {id:'streak3',icon:'🔥',name:'Три дня',desc:'3 дня подряд',check:(s)=>s.streak>=3},
+  {id:'streak7',icon:'🌟',name:'Неделя',desc:'7 дней подряд',check:(s)=>s.streak>=7},
+  {id:'score50',icon:'💎',name:'Полтинник',desc:'50 баллов итого',check:(s)=>s.totalScore>=50},
+  {id:'score200',icon:'👑',name:'Чемпион',desc:'200 баллов итого',check:(s)=>s.totalScore>=200},
+];
+
+function getAchievData() {
+  try {
+    return JSON.parse(localStorage.getItem('rt_achiev_' + S.recruiterName) || '{}');
+  } catch(e) { return {}; }
+}
+function saveAchievData(data) {
+  try { localStorage.setItem('rt_achiev_' + S.recruiterName, JSON.stringify(data)); } catch(e) {}
+}
+
+function checkAchievements(scoreThisAttempt, pctThisAttempt) {
+  const entry = S.leaderboard.find(x => x.name === S.recruiterName) || {};
+  const streak = getStreak();
+  // We need bestPct — store it locally
+  const key = 'rt_best_' + S.recruiterName;
+  let bestPct = parseInt(localStorage.getItem(key) || '0');
+  if (pctThisAttempt > bestPct) { bestPct = pctThisAttempt; localStorage.setItem(key, bestPct); }
+  const state = {
+    attempts: entry.attempts || 0,
+    totalScore: entry.totalScore || 0,
+    bestPct,
+    streak
+  };
+  const unlocked = getAchievData();
+  const newOnes = [];
+  ACHIEVEMENTS.forEach(a => {
+    if (!unlocked[a.id] && a.check(state)) {
+      unlocked[a.id] = true;
+      newOnes.push(a);
+    }
+  });
+  saveAchievData(unlocked);
+  // Show toasts for new achievements
+  if (newOnes.length > 0) showAchievToasts(newOnes, 0);
+}
+
+function showAchievToasts(list, idx) {
+  if (idx >= list.length) return;
+  const a = list[idx];
+  showToast(a.icon + '  ' + a.name + ' — ' + a.desc, 3000, () => showAchievToasts(list, idx+1));
+}
+
+function showToast(msg, duration = 3000, cb) {
+  const t = document.getElementById('toast');
+  const parts = msg.split('  ');
+  document.getElementById('toast-icon').textContent = parts[0] || '';
+  document.getElementById('toast-text').textContent = parts.slice(1).join('  ') || msg;
+  t.classList.add('show');
+  setTimeout(() => {
+    t.classList.remove('show');
+    if (cb) setTimeout(cb, 400);
+  }, duration);
+}
+
+// ===================================================
+// PROFILE PAGE
+// ===================================================
+async function gotoProfile() {
+  show('profile');
+  document.getElementById('profile-loading').style.display = 'flex';
+  document.getElementById('profile-body').style.display = 'none';
+  // Load both leaderboard (for vs team) and personal stats
+  const [lbRes, statsRes] = await Promise.all([
+    apiGet('getLeaderboard'),
+    apiGet('getStats&name=' + encodeURIComponent(S.recruiterName))
+  ]);
+  if (lbRes && lbRes.leaderboard) S.leaderboard = lbRes.leaderboard;
+  document.getElementById('profile-loading').style.display = 'none';
+  document.getElementById('profile-body').style.display = 'block';
+  renderProfile(statsRes);
+}
+
+function renderProfile(statsRes) {
+  const me = S.leaderboard.find(x => x.name === S.recruiterName) || {};
+  const streak = getStreak();
+  const unlocked = getAchievData();
+  const key = 'rt_best_' + S.recruiterName;
+  const bestPct = parseInt(localStorage.getItem(key) || '0');
+
+  // Streak block
+  document.getElementById('profile-streak').innerHTML = `
+    <div class="streak-flame">${streak > 0 ? '🔥' : '⬜'}</div>
+    <div style="flex:1">
+      <div class="streak-num">${streak}</div>
+      <div class="streak-lbl">день${streak===1?'':'я'} подряд — ${streak===0?'начни сегодня!':streak>=7?'невероятно!':streak>=3?'отличный темп!':'продолжай!'}</div>
+    </div>
+    ${streak >= 3 ? '<div style="font-size:24px">⚡</div>' : ''}
+  `;
+
+  // Summary
+  const myPct = Math.round(me.avgPct || 0);
+  const teamAvg = S.leaderboard.length > 1
+    ? Math.round(S.leaderboard.reduce((s,e) => s + (e.avgPct||0), 0) / S.leaderboard.length)
+    : myPct;
+  const diff = myPct - teamAvg;
+  const diffLabel = diff > 0 ? `+${diff}% к среднему` : diff < 0 ? `${diff}% к среднему` : 'на уровне команды';
+  const diffColor = diff > 0 ? 'var(--green)' : diff < 0 ? 'var(--red)' : 'var(--text2)';
+  document.getElementById('profile-summary').innerHTML = `
+    <div class="stat-box"><div class="stat-num">${me.attempts || 0}</div><div class="stat-lbl">Попыток</div></div>
+    <div class="stat-box"><div class="stat-num">${myPct}%</div><div class="stat-lbl">Средний результат</div></div>
+    <div class="stat-box"><div class="stat-num">${bestPct}%</div><div class="stat-lbl">Лучший результат</div></div>
+    <div class="stat-box"><div class="stat-num" style="color:${diffColor};font-size:18px">${diffLabel}</div><div class="stat-lbl">vs Команда</div></div>
+  `;
+
+  // VS Team by topics
+  if (statsRes && statsRes.topicStats && statsRes.topicStats.length) {
+    // Get my personal stats from Details via topicStats filtered by name
+    // We use personal data if available from statsRes.myTopicStats
+    // For now build vs from team data and my data if present
+    const myTopicStats = statsRes.myTopicStats || [];
+    const teamTopicMap = {};
+    statsRes.topicStats.forEach(t => { teamTopicMap[t.name] = t.avgPct; });
+
+    if (myTopicStats.length > 0) {
+      const vsHtml = myTopicStats.map(t => {
+        const teamPct = teamTopicMap[t.name] || 0;
+        const myP = t.avgPct;
+        const delta = myP - teamPct;
+        const deltaCls = delta > 0 ? 'delta-up' : delta < 0 ? 'delta-down' : 'delta-eq';
+        const deltaStr = delta > 0 ? `+${delta}%` : delta < 0 ? `${delta}%` : '=';
+        return `<div class="vs-row">
+          <div style="width:160px;flex-shrink:0;font-size:12px;color:var(--text2);text-align:right;padding-right:10px">${t.name}</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+              <span style="font-size:11px;width:32px;text-align:right;color:var(--blue);font-weight:600">Я</span>
+              <div class="vs-track" style="flex:1"><div class="vs-fill vs-me" style="width:${myP}%">${myP}%</div></div>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="font-size:11px;width:32px;text-align:right;color:var(--text3)">Все</span>
+              <div class="vs-track" style="flex:1"><div class="vs-fill vs-team" style="width:${teamPct}%">${teamPct}%</div></div>
+            </div>
+          </div>
+          <span class="delta-badge ${deltaCls}">${deltaStr}</span>
+        </div>`;
+      }).join('');
+      document.getElementById('profile-vs').innerHTML = vsHtml;
+
+      // My topics chart (worst to best)
+      const sorted = [...myTopicStats].sort((a,b) => a.avgPct - b.avgPct);
+      document.getElementById('profile-topics').innerHTML = sorted.map(t => {
+        const cls = t.avgPct >= 80 ? 'good' : t.avgPct >= 60 ? 'ok' : t.avgPct >= 40 ? 'bad' : 'poor';
+        const icon = t.avgPct >= 80 ? '💪' : t.avgPct >= 60 ? '👍' : t.avgPct >= 40 ? '⚠️' : '🔴';
+        return `<div class="my-topic-row">
+          <div class="my-topic-name">${icon} ${t.name}</div>
+          <div class="my-topic-track" style="flex:1">
+            <div class="my-topic-fill ${cls}" style="width:${t.avgPct}%">${t.avgPct}%</div>
+          </div>
+          <div style="width:50px;text-align:right;font-size:11px;color:var(--text2)">${t.count} отв.</div>
+        </div>`;
+      }).join('');
+    } else {
+      document.getElementById('profile-vs').innerHTML = '<p class="muted small">Пройди ещё тесты чтобы увидеть сравнение с командой по темам</p>';
+      document.getElementById('profile-topics').innerHTML = '<p class="muted small">Данные появятся после нескольких попыток</p>';
+    }
+  } else {
+    document.getElementById('profile-vs').innerHTML = '<p class="muted small">Данных пока нет — пройди первые тесты!</p>';
+    document.getElementById('profile-topics').innerHTML = '<p class="muted small">Данных пока нет</p>';
+  }
+
+  // Achievements
+  const unlockedCount = ACHIEVEMENTS.filter(a => unlocked[a.id]).length;
+  document.getElementById('achiev-count').textContent = unlockedCount + ' / ' + ACHIEVEMENTS.length;
+  document.getElementById('profile-achievements').innerHTML = ACHIEVEMENTS.map(a => {
+    const isUnlocked = !!unlocked[a.id];
+    return `<div class="achiev-card ${isUnlocked?'':'locked'}">
+      <div class="achiev-icon">${a.icon}</div>
+      <div class="achiev-name">${a.name}</div>
+      <div class="achiev-desc">${a.desc}</div>
+    </div>`;
+  }).join('');
+}
+
 document.addEventListener('keydown', e => {
   if (e.key==='Enter' && document.getElementById('ov-admin-login').classList.contains('on')) doLogin();
 });
@@ -827,5 +1125,7 @@ document.querySelectorAll('.overlay').forEach(ov => {
 
 gotoHome();
 </script>
+
+<div class="toast" id="toast"><span id="toast-icon"></span><span id="toast-text"></span></div>
 </body>
 </html>
