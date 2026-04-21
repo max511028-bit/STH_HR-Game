@@ -251,13 +251,39 @@ h1{font-size:24px;font-weight:700}h2{font-size:20px;font-weight:600}h3{font-size
 
 <div class="screen" id="sc-lb">
   <div class="page">
-    <div class="flex between items-center mb-20"><h2>Рейтинг рекрутёров</h2><button class="btn btn-sm" onclick="gotoHome()">На главную</button></div>
+    <div class="flex between items-center mb-16">
+      <h2>Рейтинг рекрутёров</h2>
+      <button class="btn btn-sm" onclick="gotoHome()">На главную</button>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;background:var(--bg2);padding:4px;border-radius:var(--radius);margin-bottom:16px;width:fit-content">
+      <button id="lb-tab-all" onclick="switchLbTab('all')"
+        style="padding:7px 18px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:inherit;background:var(--bg);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08);transition:all .15s">
+        Общий
+      </button>
+      <button id="lb-tab-week" onclick="switchLbTab('week')"
+        style="padding:7px 18px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;border:none;font-family:inherit;background:transparent;color:var(--text2);transition:all .15s">
+        Эта неделя
+      </button>
+    </div>
     <div id="lb-loading" class="loading-bar"><div class="spinner"></div>Загружаем рейтинг...</div>
-    <div class="card" id="lb-card" style="display:none">
+    <!-- All-time leaderboard -->
+    <div class="card" id="lb-card-all" style="display:none">
       <div class="lb-row lb-head" style="padding-bottom:8px">
         <div></div><div>Имя</div><div style="text-align:center">Попыток</div><div style="text-align:center">Ср. балл</div><div style="text-align:center">Итого</div>
       </div>
-      <div id="lb-list"></div>
+      <div id="lb-list-all"></div>
+    </div>
+    <!-- Weekly leaderboard -->
+    <div class="card" id="lb-card-week" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <p class="small muted" id="lb-week-label"></p>
+        <span class="badge badge-blue">Обновляется каждый пн</span>
+      </div>
+      <div class="lb-row lb-head" style="padding-bottom:8px">
+        <div></div><div>Имя</div><div style="text-align:center">Попыток</div><div style="text-align:center">Ср. балл</div><div style="text-align:center">Баллы</div>
+      </div>
+      <div id="lb-list-week"></div>
     </div>
   </div>
 </div>
@@ -427,6 +453,7 @@ let S = {
   adminTab: 0,
   topics: [],
   leaderboard: [],
+  weeklyLeaderboard: [],
   attempt: {questions:[], idx:0, scores:[], answered:false}
 };
 
@@ -605,31 +632,60 @@ async function gotoHome() {
   show('home');
 }
 
+// Track active leaderboard tab
+let lbTab = 'all';
+
+function switchLbTab(tab) {
+  lbTab = tab;
+  const allBtn = document.getElementById('lb-tab-all');
+  const weekBtn = document.getElementById('lb-tab-week');
+  const allCard = document.getElementById('lb-card-all');
+  const weekCard = document.getElementById('lb-card-week');
+  if (tab === 'all') {
+    allBtn.style.background = 'var(--bg)'; allBtn.style.color = 'var(--text)'; allBtn.style.fontWeight = '600'; allBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)';
+    weekBtn.style.background = 'transparent'; weekBtn.style.color = 'var(--text2)'; weekBtn.style.fontWeight = '500'; weekBtn.style.boxShadow = 'none';
+    allCard.style.display = 'block'; weekCard.style.display = 'none';
+  } else {
+    weekBtn.style.background = 'var(--bg)'; weekBtn.style.color = 'var(--text)'; weekBtn.style.fontWeight = '600'; weekBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,.08)';
+    allBtn.style.background = 'transparent'; allBtn.style.color = 'var(--text2)'; allBtn.style.fontWeight = '500'; allBtn.style.boxShadow = 'none';
+    weekCard.style.display = 'block'; allCard.style.display = 'none';
+  }
+}
+
 async function gotoLb() {
   show('lb');
-  const cached = CACHE.get('leaderboard');
-  if (cached && cached.length > 0) {
+  lbTab = 'all';
+  switchLbTab('all');
+  const cachedAll = CACHE.get('leaderboard');
+  const cachedWeek = CACHE.get('weekly');
+  if (cachedAll && cachedAll.length > 0) {
     // Show cached instantly
-    S.leaderboard = cached;
+    S.leaderboard = cachedAll;
     document.getElementById('lb-loading').style.display = 'none';
-    document.getElementById('lb-card').style.display = 'block';
-    renderLb();
-    // Refresh in background, update if changed
+    document.getElementById('lb-card-all').style.display = 'block';
+    renderLbAll();
+    if (cachedWeek) { S.weeklyLeaderboard = cachedWeek; renderLbWeek(); }
+    // Refresh both in background
     apiGet('getLeaderboard').then(res => {
-      if (res && res.leaderboard) {
-        S.leaderboard = res.leaderboard;
-        CACHE.set('leaderboard', res.leaderboard);
-        renderLb();
-      }
+      if (res && res.leaderboard) { S.leaderboard = res.leaderboard; CACHE.set('leaderboard', res.leaderboard); renderLbAll(); }
+    });
+    apiGet('getWeeklyLeaderboard').then(res => {
+      if (res && res.leaderboard) { S.weeklyLeaderboard = res.leaderboard; CACHE.set('weekly', res.leaderboard); renderLbWeek(); }
     });
   } else {
     // No cache — show spinner, wait for network
     document.getElementById('lb-loading').style.display = 'flex';
-    document.getElementById('lb-card').style.display = 'none';
-    await loadLeaderboard();
-    renderLb();
+    document.getElementById('lb-card-all').style.display = 'none';
+    const [allRes, weekRes] = await Promise.all([
+      apiGet('getLeaderboard'),
+      apiGet('getWeeklyLeaderboard')
+    ]);
+    if (allRes && allRes.leaderboard) { S.leaderboard = allRes.leaderboard; CACHE.set('leaderboard', allRes.leaderboard); }
+    if (weekRes && weekRes.leaderboard) { S.weeklyLeaderboard = weekRes.leaderboard; CACHE.set('weekly', weekRes.leaderboard); }
     document.getElementById('lb-loading').style.display = 'none';
-    document.getElementById('lb-card').style.display = 'block';
+    document.getElementById('lb-card-all').style.display = 'block';
+    renderLbAll();
+    renderLbWeek();
   }
 }
 
@@ -747,20 +803,65 @@ async function finishAttempt() {
 
 function confirmExit() { if (confirm('Выйти из теста? Прогресс текущей попытки не сохранится.')) gotoHome(); }
 
-function renderLb() {
+function renderLbAll() {
   const sorted = [...S.leaderboard].sort((a,b) => b.totalScore - a.totalScore);
-  const el = document.getElementById('lb-list');
-  if (!sorted.length) {
-    el.innerHTML = '<div class="empty-state">Рейтинг пока пуст — пройдите первый тест!</div>';
-    return;
-  }
+  const el = document.getElementById('lb-list-all');
+  if (!el) return;
+  if (!sorted.length) { el.innerHTML = '<div class="empty-state">Рейтинг пока пуст — пройдите первый тест!</div>'; return; }
+  const myName = S.recruiterName;
   el.innerHTML = sorted.map((e,i) => {
     const rc = i===0?'r1':i===1?'r2':i===2?'r3':'rn';
     const p = Math.round(e.avgPct);
     const bc = p>=80?'badge-green':p>=50?'badge-blue':p>=30?'badge-amber':'badge-red';
-    return `<div class="lb-row"><div><span class="rnk ${rc}">${i+1}</span></div><div style="font-weight:${i<3?600:400}">${e.name}</div><div style="text-align:center;color:var(--text2)">${e.attempts}</div><div style="text-align:center"><span class="badge ${bc}">${p}%</span></div><div style="text-align:center;font-weight:600">${e.totalScore}</div></div>`;
+    const isMe = e.name === myName;
+    return `<div class="lb-row" style="${isMe?'background:var(--blue-light);border-radius:var(--radius);margin:0 -4px;padding-left:4px;padding-right:4px':''}">
+      <div><span class="rnk ${rc}">${i+1}</span></div>
+      <div style="font-weight:${i<3||isMe?600:400}">${e.name}${isMe?' <span style="font-size:10px;color:var(--blue)">• вы</span>':''}</div>
+      <div style="text-align:center;color:var(--text2)">${e.attempts}</div>
+      <div style="text-align:center"><span class="badge ${bc}">${p}%</span></div>
+      <div style="text-align:center;font-weight:600">${e.totalScore}</div>
+    </div>`;
   }).join('');
 }
+
+function renderLbWeek() {
+  const el = document.getElementById('lb-list-week');
+  if (!el) return;
+  // Update week label
+  const now = new Date();
+  const mon = new Date(now); mon.setDate(now.getDate() - ((now.getDay()+6)%7));
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const fmt = d => d.toLocaleDateString('ru-RU', {day:'numeric', month:'long'});
+  const lbl = document.getElementById('lb-week-label');
+  if (lbl) lbl.textContent = fmt(mon) + ' — ' + fmt(sun);
+
+  const weekly = S.weeklyLeaderboard || [];
+  const sorted = [...weekly].sort((a,b) => b.totalScore - a.totalScore);
+  if (!sorted.length) {
+    el.innerHTML = '<div class="empty-state">На этой неделе ещё никто не проходил тест — будь первым!</div>';
+    return;
+  }
+  const myName = S.recruiterName;
+  el.innerHTML = sorted.map((e,i) => {
+    const rc = i===0?'r1':i===1?'r2':i===2?'r3':'rn';
+    const p = Math.round(e.avgPct);
+    const bc = p>=80?'badge-green':p>=50?'badge-blue':p>=30?'badge-amber':'badge-red';
+    const isMe = e.name === myName;
+    // Trend icon
+    const trendIcon = e.trend === 'up' ? '<span style="color:var(--green);font-size:11px">▲</span>' :
+                      e.trend === 'down' ? '<span style="color:var(--red);font-size:11px">▼</span>' : '';
+    return `<div class="lb-row" style="${isMe?'background:var(--blue-light);border-radius:var(--radius);margin:0 -4px;padding-left:4px;padding-right:4px':''}">
+      <div><span class="rnk ${rc}">${i+1}</span></div>
+      <div style="font-weight:${i<3||isMe?600:400}">${e.name}${isMe?' <span style="font-size:10px;color:var(--blue)">• вы</span>':''} ${trendIcon}</div>
+      <div style="text-align:center;color:var(--text2)">${e.attempts}</div>
+      <div style="text-align:center"><span class="badge ${bc}">${p}%</span></div>
+      <div style="text-align:center;font-weight:600">${e.totalScore}</div>
+    </div>`;
+  }).join('');
+}
+
+// Keep old renderLb as alias for compatibility
+function renderLb() { renderLbAll(); }
 
 // ---- Admin ----
 function showAdminLogin() {
