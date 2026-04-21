@@ -430,6 +430,13 @@ let S = {
   attempt: {questions:[], idx:0, scores:[], answered:false}
 };
 
+// ---- Cache helpers ----
+const CACHE = {
+  get(key) { try { const v = localStorage.getItem('rt_cache_'+key); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set(key, val) { try { localStorage.setItem('rt_cache_'+key, JSON.stringify(val)); } catch(e) {} },
+  clear(key) { try { localStorage.removeItem('rt_cache_'+key); } catch(e) {} }
+};
+
 // ---- API helpers ----
 async function apiGet(action) {
   if (!API_URL) return null;
@@ -464,15 +471,31 @@ function isApiConfigured() {
 }
 
 // ---- Load topics ----
-async function loadTopics() {
+async function loadTopics(forceRefresh) {
+  // 1. Load from cache instantly
+  const cached = CACHE.get('topics');
+  if (cached && cached.length > 0) {
+    S.topics = cached;
+    if (!forceRefresh) {
+      // Refresh in background silently
+      apiGet('getTopics').then(res => {
+        if (res && res.topics) {
+          S.topics = res.topics;
+          CACHE.set('topics', res.topics);
+        }
+      });
+      return; // return immediately with cached data
+    }
+  }
+  // 2. No cache — must wait for network
   if (isApiConfigured()) {
     const res = await apiGet('getTopics');
     if (res && res.topics) {
       S.topics = res.topics;
+      CACHE.set('topics', res.topics);
       return;
     }
   }
-  // fallback: localStorage
   try {
     const t = localStorage.getItem('rt_v3');
     S.topics = t ? JSON.parse(t) : [];
@@ -483,8 +506,12 @@ async function saveTopicsToAPI() {
   if (isApiConfigured()) {
     showSyncStatus('Сохраняем...', 'loading');
     const res = await apiPost({action:'saveTopics', topics: S.topics});
-    if (res && res.ok) showSyncStatus('Сохранено в Google Таблицу ✓', 'ok');
-    else showSyncStatus('Ошибка сохранения', 'err');
+    if (res && res.ok) {
+      CACHE.set('topics', S.topics); // update cache immediately
+      showSyncStatus('Сохранено в Google Таблицу ✓', 'ok');
+    } else {
+      showSyncStatus('Ошибка сохранения', 'err');
+    }
   } else {
     localStorage.setItem('rt_v3', JSON.stringify(S.topics));
   }
@@ -506,11 +533,28 @@ function showSyncStatus(msg, type) {
 }
 
 // ---- Load leaderboard ----
-async function loadLeaderboard() {
+async function loadLeaderboard(forceRefresh) {
+  // 1. Load from cache instantly
+  const cached = CACHE.get('leaderboard');
+  if (cached) {
+    S.leaderboard = cached;
+    if (!forceRefresh) {
+      // Refresh in background
+      apiGet('getLeaderboard').then(res => {
+        if (res && res.leaderboard) {
+          S.leaderboard = res.leaderboard;
+          CACHE.set('leaderboard', res.leaderboard);
+        }
+      });
+      return;
+    }
+  }
+  // 2. No cache — wait for network
   if (isApiConfigured()) {
     const res = await apiGet('getLeaderboard');
     if (res && res.leaderboard) {
       S.leaderboard = res.leaderboard;
+      CACHE.set('leaderboard', res.leaderboard);
       return;
     }
   }
@@ -521,15 +565,21 @@ async function loadLeaderboard() {
 }
 
 async function saveResult(name, score, pct) {
+  // Update local cache immediately so stats feel instant
+  let entry = S.leaderboard.find(x => x.name === name);
+  if (!entry) { entry = {name, attempts:0, totalScore:0, avgPct:0}; S.leaderboard.push(entry); }
+  entry.attempts++;
+  entry.totalScore += score;
+  entry.avgPct = parseFloat(((entry.avgPct*(entry.attempts-1)+pct)/entry.attempts).toFixed(1));
+  CACHE.set('leaderboard', S.leaderboard);
+  // Send to server in background — don't await
   if (isApiConfigured()) {
-    await apiPost({action:'saveResult', name, score, pct});
-  } else {
-    let e = S.leaderboard.find(x => x.name === name);
-    if (!e) { e = {name, attempts:0, totalScore:0, avgPct:0}; S.leaderboard.push(e); }
-    e.attempts++;
-    e.totalScore += score;
-    e.avgPct = parseFloat(((e.avgPct*(e.attempts-1)+pct)/e.attempts).toFixed(1));
-    localStorage.setItem('rt_lb_v3', JSON.stringify(S.leaderboard));
+    apiPost({action:'saveResult', name, score, pct}).then(() => {
+      // Refresh leaderboard cache after save
+      apiGet('getLeaderboard').then(res => {
+        if (res && res.leaderboard) CACHE.set('leaderboard', res.leaderboard);
+      });
+    });
   }
 }
 
@@ -545,8 +595,9 @@ async function gotoHome() {
     document.getElementById('home-enter').style.display = 'none';
     document.getElementById('home-ready').style.display = 'block';
     document.getElementById('span-name').textContent = S.recruiterName;
-    await loadLeaderboard();
-    renderHomeStats();
+    // Show instantly from cache, update in background
+    loadLeaderboard().then(() => renderHomeStats());
+    renderHomeStats(); // render immediately with whatever we have
   } else {
     document.getElementById('home-enter').style.display = 'block';
     document.getElementById('home-ready').style.display = 'none';
@@ -556,22 +607,41 @@ async function gotoHome() {
 
 async function gotoLb() {
   show('lb');
-  document.getElementById('lb-loading').style.display = 'flex';
-  document.getElementById('lb-card').style.display = 'none';
-  await loadLeaderboard();
-  renderLb();
-  document.getElementById('lb-loading').style.display = 'none';
-  document.getElementById('lb-card').style.display = 'block';
+  const cached = CACHE.get('leaderboard');
+  if (cached && cached.length > 0) {
+    // Show cached instantly
+    S.leaderboard = cached;
+    document.getElementById('lb-loading').style.display = 'none';
+    document.getElementById('lb-card').style.display = 'block';
+    renderLb();
+    // Refresh in background, update if changed
+    apiGet('getLeaderboard').then(res => {
+      if (res && res.leaderboard) {
+        S.leaderboard = res.leaderboard;
+        CACHE.set('leaderboard', res.leaderboard);
+        renderLb();
+      }
+    });
+  } else {
+    // No cache — show spinner, wait for network
+    document.getElementById('lb-loading').style.display = 'flex';
+    document.getElementById('lb-card').style.display = 'none';
+    await loadLeaderboard();
+    renderLb();
+    document.getElementById('lb-loading').style.display = 'none';
+    document.getElementById('lb-card').style.display = 'block';
+  }
 }
 
-async function enterName() {
+function enterName() {
   const v = document.getElementById('inp-name').value.trim();
   if (!v) { document.getElementById('inp-name').focus(); return; }
   S.recruiterName = v;
   document.getElementById('home-enter').style.display = 'none';
   document.getElementById('home-ready').style.display = 'block';
   document.getElementById('span-name').textContent = v;
-  await loadLeaderboard();
+  // Show immediately, load in background
+  loadLeaderboard().then(() => renderHomeStats());
   renderHomeStats();
 }
 
@@ -593,7 +663,7 @@ function renderHomeStats() {
 }
 
 async function startAttempt() {
-  await loadTopics();
+  await loadTopics(); // instant if cached
   const valid = S.topics.filter(t => t.questions && t.questions.length > 0);
   if (valid.length < 5) { alert('Для начала теста нужно минимум 5 тем с вопросами.\n\nСейчас тем с вопросами: ' + valid.length); return; }
   const shuffled = [...valid].sort(() => Math.random()-.5).slice(0,5);
@@ -661,17 +731,18 @@ async function finishAttempt() {
     const sc = S.attempt.scores[i]??0;
     return `<div class="score-row"><span class="badge badge-purple" style="max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${item.topicName}</span><span class="badge ${fbcls[sc]}">${scoreLabels[sc]}</span></div>`;
   }).join('');
-  await saveResult(S.recruiterName, total, pct);
-  // Сохраняем детальную статистику по каждому вопросу
+  // Show results immediately — save in background
+  updateStreak();
+  checkAchievements(total, pct);
+  show('results');
+  // Fire-and-forget saves
+  saveResult(S.recruiterName, total, pct);
   const details = S.attempt.questions.map((item, i) => ({
     topicName: item.topicName,
     questionText: item.q.q.substring(0, 120),
     score: S.attempt.scores[i] ?? 0
   }));
-  await apiPost({action: 'saveDetails', name: S.recruiterName, details});
-  updateStreak();
-  checkAchievements(total, pct);
-  show('results');
+  apiPost({action: 'saveDetails', name: S.recruiterName, details});
 }
 
 function confirmExit() { if (confirm('Выйти из теста? Прогресс текущей попытки не сохранится.')) gotoHome(); }
@@ -830,16 +901,32 @@ async function deleteQ(ti,qi) {
 
 async function gotoStats() {
   show('stats');
-  document.getElementById('stats-loading').style.display = 'flex';
-  document.getElementById('stats-body').style.display = 'none';
-  const res = await apiGet('getStats');
-  document.getElementById('stats-loading').style.display = 'none';
-  document.getElementById('stats-body').style.display = 'block';
-  if (!res || !res.topicStats) {
-    document.getElementById('stats-body').innerHTML = '<div class="empty-state">Данных пока нет — пройдите первые тесты!</div>';
-    return;
+  const cached = CACHE.get('stats');
+  if (cached) {
+    // Show instantly from cache
+    document.getElementById('stats-loading').style.display = 'none';
+    document.getElementById('stats-body').style.display = 'block';
+    renderStats(cached);
+    // Refresh in background
+    apiGet('getStats').then(res => {
+      if (res && res.topicStats) {
+        CACHE.set('stats', res);
+        renderStats(res);
+      }
+    });
+  } else {
+    document.getElementById('stats-loading').style.display = 'flex';
+    document.getElementById('stats-body').style.display = 'none';
+    const res = await apiGet('getStats');
+    document.getElementById('stats-loading').style.display = 'none';
+    document.getElementById('stats-body').style.display = 'block';
+    if (!res || !res.topicStats) {
+      document.getElementById('stats-body').innerHTML = '<div class="empty-state">Данных пока нет — пройдите первые тесты!</div>';
+      return;
+    }
+    CACHE.set('stats', res);
+    renderStats(res);
   }
-  renderStats(res);
 }
 
 function renderStats(data) {
@@ -1003,17 +1090,36 @@ function showToast(msg, duration = 3000, cb) {
 // ===================================================
 async function gotoProfile() {
   show('profile');
-  document.getElementById('profile-loading').style.display = 'flex';
-  document.getElementById('profile-body').style.display = 'none';
-  // Load both leaderboard (for vs team) and personal stats
-  const [lbRes, statsRes] = await Promise.all([
-    apiGet('getLeaderboard'),
-    apiGet('getStats&name=' + encodeURIComponent(S.recruiterName))
-  ]);
-  if (lbRes && lbRes.leaderboard) S.leaderboard = lbRes.leaderboard;
-  document.getElementById('profile-loading').style.display = 'none';
-  document.getElementById('profile-body').style.display = 'block';
-  renderProfile(statsRes);
+  const cachedLb = CACHE.get('leaderboard');
+  const cachedStats = CACHE.get('stats_' + S.recruiterName);
+  if (cachedLb && cachedStats) {
+    // Show instantly
+    S.leaderboard = cachedLb;
+    document.getElementById('profile-loading').style.display = 'none';
+    document.getElementById('profile-body').style.display = 'block';
+    renderProfile(cachedStats);
+    // Refresh in background
+    Promise.all([
+      apiGet('getLeaderboard'),
+      apiGet('getStats&name=' + encodeURIComponent(S.recruiterName))
+    ]).then(([lbRes, statsRes]) => {
+      if (lbRes && lbRes.leaderboard) { S.leaderboard = lbRes.leaderboard; CACHE.set('leaderboard', lbRes.leaderboard); }
+      if (statsRes && statsRes.topicStats) { CACHE.set('stats_' + S.recruiterName, statsRes); }
+      renderProfile(statsRes || cachedStats);
+    });
+  } else {
+    document.getElementById('profile-loading').style.display = 'flex';
+    document.getElementById('profile-body').style.display = 'none';
+    const [lbRes, statsRes] = await Promise.all([
+      apiGet('getLeaderboard'),
+      apiGet('getStats&name=' + encodeURIComponent(S.recruiterName))
+    ]);
+    if (lbRes && lbRes.leaderboard) { S.leaderboard = lbRes.leaderboard; CACHE.set('leaderboard', lbRes.leaderboard); }
+    if (statsRes) CACHE.set('stats_' + S.recruiterName, statsRes);
+    document.getElementById('profile-loading').style.display = 'none';
+    document.getElementById('profile-body').style.display = 'block';
+    renderProfile(statsRes);
+  }
 }
 
 function renderProfile(statsRes) {
@@ -1124,6 +1230,11 @@ document.querySelectorAll('.overlay').forEach(ov => {
 });
 
 gotoHome();
+// Preload topics and leaderboard into cache on startup
+setTimeout(() => {
+  apiGet('getTopics').then(res => { if (res && res.topics) CACHE.set('topics', res.topics); });
+  apiGet('getLeaderboard').then(res => { if (res && res.leaderboard) CACHE.set('leaderboard', res.leaderboard); });
+}, 300);
 </script>
 
 <div class="toast" id="toast"><span id="toast-icon"></span><span id="toast-text"></span></div>
