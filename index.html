@@ -524,7 +524,7 @@ async function startAttempt() {
     const q = t.questions[Math.floor(Math.random()*t.questions.length)];
     return {topicName: t.name, q};
   });
-  S.attempt.idx = 0; S.attempt.scores = []; S.attempt.answered = false;
+  S.attempt.idx = 0; S.attempt.scores = []; S.attempt.answered = false; S.attempt.finishing = false;
   show('quiz'); renderQ();
 }
 
@@ -567,6 +567,8 @@ function pickAns(i) {
 function nextQ() { S.attempt.idx++; renderQ(); }
 
 async function finishAttempt() {
+  if (S.attempt.finishing) return;
+  S.attempt.finishing = true;
   const total = S.attempt.scores.reduce((a,b) => a+b, 0);
   const max = S.attempt.questions.length * 3;
   const pct = Math.round((total/max)*100);
